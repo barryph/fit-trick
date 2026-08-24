@@ -103,7 +103,7 @@ export default function GoalInsightsScreen() {
           </ThemedText>
           <ThemedText size="small" style={styles.sectionHint}>
             Over the last{' '}
-            {NUMBER_OF_WEEKS_REPORTED > 1
+            {NUMBER_OF_WEEKS_REPORTED !== 1
               ? NUMBER_OF_WEEKS_REPORTED + ' weeks'
               : 'week'}
           </ThemedText>
@@ -116,7 +116,7 @@ export default function GoalInsightsScreen() {
         <ListItemShell style={[styles.section, styles.ringSection]}>
           <GoalAdherenceRing
             adherence={stats.adherence}
-            periodLabel={`last ${NUMBER_OF_WEEKS_REPORTED > 1 ? NUMBER_OF_WEEKS_REPORTED + ' weeks' : 'week'}`}
+            periodLabel={`last ${NUMBER_OF_WEEKS_REPORTED !== 1 ? NUMBER_OF_WEEKS_REPORTED + ' weeks' : 'week'}`}
           />
         </ListItemShell>
 
@@ -126,7 +126,7 @@ export default function GoalInsightsScreen() {
           </ThemedText>
           <ThemedText size="small" style={styles.sectionHint}>
             Over the last{' '}
-            {stats.heatmap.length > 1
+            {stats.heatmap.length !== 1
               ? `${stats.heatmap.length} weeks`
               : 'week'}
           </ThemedText>

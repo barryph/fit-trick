@@ -186,7 +186,7 @@ export default function Categories() {
                         >
                           {categoryToActivityCountMap[category.id!] || '0'}
                         </ThemedText>{' '}
-                        {categoryToActivityCountMap[category.id!] > 1
+                        {categoryToActivityCountMap[category.id!] !== 1
                           ? 'activities'
                           : 'activity'}
                       </ThemedText>
