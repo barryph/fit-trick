@@ -98,12 +98,6 @@ export default function GoalsScreen() {
                           )}
                         </View>
                       </View>
-                      <GoalProgressBar
-                        count={goal.currentWeekCount}
-                        target={goal.targetPerWeek}
-                        height={10}
-                        style={styles.progressBar}
-                      />
                       <View style={styles.bottomRow}>
                         <ThemedText size="extraSmall">
                           See Stats &rarr;
@@ -122,6 +116,12 @@ export default function GoalsScreen() {
                           )}
                         </ThemedText>
                       </View>
+                      <GoalProgressBar
+                        count={goal.currentWeekCount}
+                        target={goal.targetPerWeek}
+                        height={10}
+                        style={styles.progressBar}
+                      />
                     </Pressable>
                   </ListItemShell>
                 );
@@ -151,12 +151,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   list: {
-    gap: 8,
+    gap: 12,
   },
   item: {
-    paddingTop: 13,
     paddingHorizontal: 15,
-    paddingBottom: 15,
+    paddingVertical: 11,
   },
   itemRow: {
     flexDirection: 'row',
@@ -178,7 +177,7 @@ const styles = StyleSheet.create({
     color: '#52f2a8',
   },
   progressBar: {
-    marginTop: 8,
+    marginTop: 6,
   },
   emptyShell: {
     paddingHorizontal: 16,
@@ -189,7 +188,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   bottomRow: {
-    marginTop: 3,
+    marginTop: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

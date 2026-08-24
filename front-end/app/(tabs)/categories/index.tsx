@@ -168,7 +168,13 @@ export default function Categories() {
                   <View style={styles.leftRow}>
                     <View style={styles.topRow}>
                       <Dot backgroundColor={category.color} />
-                      <ThemedText type="defaultBold">
+                      <ThemedText
+                        type="defaultBold"
+                        style={{
+                          fontFamily: "'system-ui'",
+                          fontWeight: '600',
+                        }}
+                      >
                         {category.name}
                       </ThemedText>
                     </View>
@@ -289,13 +295,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   categories: {
-    gap: 8,
+    gap: 12,
   },
   category: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 14,
-    paddingBottom: 12,
+    paddingVertical: 10,
     paddingHorizontal: 16,
   },
   leftRow: {

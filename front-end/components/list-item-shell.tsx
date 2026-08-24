@@ -18,7 +18,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderStyle: 'solid',
     borderColor: 'rgba(255,255,255,.1)',
-    borderRadius: 20,
+    borderRadius: 15,
     boxShadow: '0 14px 35px rgba(0,0,0,.22)',
     overflow: 'hidden',
   },

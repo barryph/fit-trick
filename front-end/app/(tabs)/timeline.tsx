@@ -681,8 +681,8 @@ const styles = StyleSheet.create({
   },
   activityLabelText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '500',
   },
   isLoadingOverlay: {
     position: 'absolute',
