@@ -171,8 +171,7 @@ export default function Categories() {
                       <ThemedText
                         type="defaultBold"
                         style={{
-                          fontFamily: "'system-ui'",
-                          fontWeight: '600',
+                          lineHeight: 28,
                         }}
                       >
                         {category.name}
@@ -317,7 +316,7 @@ const styles = StyleSheet.create({
   },
   bottomRowText: {
     fontSize: 12,
-    opacity: 0.8,
+    opacity: 0.6,
   },
   settingsButton: {
     paddingVertical: 9,

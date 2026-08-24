@@ -241,8 +241,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activityName: {
-    fontFamily: "'system-ui'",
-    fontWeight: '600',
     lineHeight: 28,
     color: '#fff',
   },
