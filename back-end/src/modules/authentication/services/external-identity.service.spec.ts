@@ -29,12 +29,17 @@ describe('ExternalIdentityService', () => {
       password: null,
     });
 
-  const makeIdentity = (provider, subject, userId) =>
+  const makeIdentity = (
+    provider: 'google' | 'apple',
+    subject: string,
+    userId: string,
+  ) =>
     ExternalIdentity.createNew({
       provider,
       providerSubject: subject,
       userId,
       providerEmail: 'provider@example.com',
+      refreshToken: null,
     });
 
   beforeEach(async () => {

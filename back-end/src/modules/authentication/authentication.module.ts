@@ -3,13 +3,14 @@ import { UsersModule } from '../users/users.module';
 import { AuthenticationService } from './services/authentication.service';
 import { SocialAuthService } from './services/social-auth.service';
 import { ExternalIdentityService } from './services/external-identity.service';
+import { AccountDeletionService } from './services/account-deletion.service';
 import { PassportModule } from '@nestjs/passport';
 import { AuthenticationController } from './authentication.controller';
 import { EMAIL_SENDER } from './ports/email-sender.port';
 import { NoopEmailSender } from './infrastructure/noop-email-sender';
 import { GoogleProvider } from './infrastructure/providers/google.provider';
 import { AppleProvider } from './infrastructure/providers/apple.provider';
-import ExternalIdentitiesRepo from './repos/external-identities.repository';
+import AccountDeletionRepo from './repos/account-deletion.repository';
 
 @Module({
   imports: [UsersModule, PassportModule],
@@ -18,9 +19,10 @@ import ExternalIdentitiesRepo from './repos/external-identities.repository';
     AuthenticationService,
     SocialAuthService,
     ExternalIdentityService,
+    AccountDeletionService,
     GoogleProvider,
     AppleProvider,
-    ExternalIdentitiesRepo,
+    AccountDeletionRepo,
     {
       provide: EMAIL_SENDER,
       useClass: NoopEmailSender,

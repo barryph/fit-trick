@@ -134,7 +134,11 @@ describe('OAuth sign-in (e2e)', () => {
 
     const response = await agent
       .post('/auth/apple')
-      .send({ idToken: appleToken(), nonce: 'e2e-nonce' })
+      .send({
+        idToken: appleToken(),
+        nonce: 'e2e-nonce',
+        authorizationCode: 'e2e-authorization-code',
+      })
       .expect(200);
 
     expect(response.body.data.user.email).toBe('apple-user@example.com');
@@ -152,7 +156,11 @@ describe('OAuth sign-in (e2e)', () => {
 
     await agent
       .post('/auth/apple')
-      .send({ idToken: appleToken(), nonce: 'different-nonce' })
+      .send({
+        idToken: appleToken(),
+        nonce: 'different-nonce',
+        authorizationCode: 'e2e-authorization-code',
+      })
       .expect(401)
       .expect((res) => {
         expect(res.body.error.code).toBe('OAUTH_AUTH_FAILED');

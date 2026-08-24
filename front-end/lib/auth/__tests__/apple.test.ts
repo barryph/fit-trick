@@ -25,19 +25,20 @@ describe('Apple sign-in', () => {
     });
   });
 
-  it('returns the identity token and raw nonce on success', async () => {
+  it('returns the identity token, raw nonce, and authorization code on success', async () => {
     jest.replaceProperty(Platform, 'OS', 'ios');
     mockSignInAsync.mockResolvedValue({
       identityToken: 'apple-id-token',
       fullName: null,
       email: null,
-      authorizationCode: 'code',
+      authorizationCode: 'apple-auth-code',
       user: 'apple-user',
     } as AppleAuthentication.AppleAuthenticationCredential);
 
     const result = await signInWithApple();
 
     expect(result.idToken).toBe('apple-id-token');
+    expect(result.authorizationCode).toBe('apple-auth-code');
     expect(result.nonce).toMatch(/^[0-9a-f]{64}$/);
     expect(mockSignInAsync).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -62,6 +63,16 @@ describe('Apple sign-in', () => {
     jest.replaceProperty(Platform, 'OS', 'ios');
     mockSignInAsync.mockResolvedValue({
       identityToken: null,
+    } as unknown as AppleAuthentication.AppleAuthenticationCredential);
+
+    await expect(signInWithApple()).rejects.toMatchObject({ code: 'failed' });
+  });
+
+  it('fails when no authorization code is returned', async () => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
+    mockSignInAsync.mockResolvedValue({
+      identityToken: 'apple-id-token',
+      authorizationCode: null,
     } as unknown as AppleAuthentication.AppleAuthenticationCredential);
 
     await expect(signInWithApple()).rejects.toMatchObject({ code: 'failed' });

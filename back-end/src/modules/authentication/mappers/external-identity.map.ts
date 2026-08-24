@@ -7,6 +7,7 @@ export interface IExternalIdentityPersistence {
   provider_subject: string;
   user_id: string;
   provider_email: string | null;
+  refresh_token: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -19,6 +20,7 @@ export function toPersistence(
     provider_subject: identity.providerSubject,
     user_id: identity.userId,
     provider_email: identity.providerEmail,
+    refresh_token: identity.refreshToken,
   };
 }
 
@@ -31,5 +33,6 @@ export function persistenceToDomain(
     providerSubject: row.provider_subject,
     userId: row.user_id,
     providerEmail: row.provider_email,
+    refreshToken: row.refresh_token,
   });
 }

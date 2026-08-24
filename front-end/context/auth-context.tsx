@@ -4,14 +4,24 @@ import {
   type LoginResponse,
   type RegisterResponse,
 } from '../api/api.auth';
-import type { ApiResponse, AppError, IUser } from '@/api/api.types';
-import { ErrorCode } from '@/api/api.types';
+import {
+  ErrorCode,
+  type ApiResponse,
+  type AppError,
+  type IUser,
+} from '@/api/api.types';
 import { usersAPI } from '@/api/api.users';
 import LoaderScreen from '@/components/base/loader-screen';
 import { queryClient } from '@/lib/query/client';
+import { ApiError } from '@/lib/query/unwrap';
+import {
+  revokeGoogleAccess,
+  signInWithGoogle as googleSignInClient,
+} from '@/lib/auth/google';
 import { signInWithApple as appleSignInClient } from '@/lib/auth/apple';
-import { signInWithGoogle as googleSignInClient } from '@/lib/auth/google';
 import { isSocialAuthError } from '@/lib/auth/errors';
+import { removeItem } from '@/lib/storage/client';
+import { storageKeys } from '@/lib/storage/keys';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -29,6 +39,7 @@ interface AuthState {
   ) => Promise<ApiResponse<RegisterResponse>>;
   signInWithGoogle: () => Promise<ApiResponse<LoginResponse>>;
   signInWithApple: () => Promise<ApiResponse<LoginResponse>>;
+  deleteAccount: () => Promise<void>;
 }
 
 interface AuthProviderProps {
@@ -95,6 +106,73 @@ export function AuthProvider({ children }: AuthProviderProps) {
     queryClient.clear();
   }
 
+  /**
+   * Deletes the authenticated user's account. The backend decides which
+   * account to delete from the session alone; no identifier is ever sent.
+   *
+   * Google's documented disconnect flow applies only to accounts actually
+   * linked to Google, so the linked providers are fetched from the server
+   * first and `revokeAccess` is only attempted for Google-linked accounts.
+   * The disconnect itself is best-effort — the app holds no Google API scopes
+   * beyond OIDC identity, and failures must not block account deletion.
+   *
+   * On success all local auth state and the user's offline queue are cleared;
+   * the navigation guard then redirects to the login screen. Throws `ApiError`
+   * on failure so the UI can surface the reason; the account is left intact.
+   */
+  async function deleteAccount(): Promise<void> {
+    console.log('is google linked:', await isGoogleLinked());
+    if (await isGoogleLinked()) {
+      try {
+        await revokeGoogleAccess();
+      } catch (err) {
+        console.error(
+          'Google revokeAccess failed during account deletion (best-effort)',
+          err,
+        );
+      }
+    }
+
+    const response = await authAPI.deleteAccount();
+    if (response.error) {
+      // The account is already gone: treat as success (idempotent deletion).
+      if (response.error.code === ErrorCode.ACCOUNT_NOT_FOUND) {
+        clearLocalAccountState();
+        return;
+      }
+      throw new ApiError(response.error);
+    }
+
+    clearLocalAccountState();
+  }
+
+  /**
+   * Reports whether the authenticated account is linked to Google, from the
+   * server's external-identity records. Fetching fresh here (rather than
+   * reusing boot-time state) keeps the check authoritative even right after a
+   * provider sign-in. When the lookup fails, the account is treated as not
+   * Google-linked so no disconnect is attempted for it.
+   */
+  async function isGoogleLinked(): Promise<boolean> {
+    try {
+      const current = await usersAPI.getCurrentUser();
+      console.log('authProviders', current.data?.authProviders);
+      return current.data?.authProviders.includes('google') ?? false;
+    } catch (err) {
+      console.error('Error fetching account providers before deletion', err);
+      return false;
+    }
+  }
+
+  function clearLocalAccountState() {
+    if (user) {
+      void removeItem(storageKeys.activityQueue(user.id));
+    }
+    setUser(null);
+    setIsAuthenticated(false);
+    queryClient.clear();
+  }
+
   async function register(
     email: string,
     password: string,
@@ -121,10 +199,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * (e.g. cancellation is not shown as an error).
    */
   async function performSocialSignIn(
-    provider: () => Promise<{ idToken: string; nonce?: string }>,
+    provider: () => Promise<{
+      idToken: string;
+      nonce?: string;
+      authorizationCode?: string;
+    }>,
     exchange: (
       idToken: string,
       nonce?: string,
+      authorizationCode?: string,
     ) => Promise<ApiResponse<LoginResponse>>,
   ): Promise<ApiResponse<LoginResponse>> {
     if (socialAuthInFlight.current) {
@@ -137,7 +220,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     socialAuthInFlight.current = true;
 
     try {
-      let credential: { idToken: string; nonce?: string };
+      let credential: {
+        idToken: string;
+        nonce?: string;
+        authorizationCode?: string;
+      };
       try {
         credential = await provider();
       } catch (err) {
@@ -146,7 +233,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       let response: ApiResponse<LoginResponse>;
       try {
-        response = await exchange(credential.idToken, credential.nonce);
+        response = await exchange(
+          credential.idToken,
+          credential.nonce,
+          credential.authorizationCode,
+        );
       } catch (err) {
         console.error('Error exchanging social credential', err);
         return toAppError(
@@ -206,7 +297,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   function signInWithApple(): Promise<ApiResponse<LoginResponse>> {
     return performSocialSignIn(
       async () => appleSignInClient(),
-      (idToken, nonce) => authAPI.appleLogin({ idToken, nonce: nonce ?? '' }),
+      (idToken, nonce, authorizationCode) =>
+        authAPI.appleLogin({
+          idToken,
+          nonce: nonce ?? '',
+          authorizationCode: authorizationCode ?? '',
+        }),
     );
   }
 
@@ -225,6 +321,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         register,
         signInWithGoogle,
         signInWithApple,
+        deleteAccount,
       }}
     >
       {children}

@@ -8,11 +8,13 @@ import {
   Next,
   Logger,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBody } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import CreateUserDTO from '../authentication/dtos/createUser.dto';
 import { AuthenticationService } from './services/authentication.service';
+import { AccountDeletionService } from './services/account-deletion.service';
 import type { UserDTO } from '../users/mappers/userMap';
 import passport from 'passport';
 import type { NextFunction, Request, Response } from 'express';
@@ -24,6 +26,7 @@ import AppleLoginDTO from './dtos/apple-login.dto';
 import { SocialAuthService } from './services/social-auth.service';
 import { InvalidCredentialsError } from './authentication.errors';
 import ServerError from 'src/shared/ServerError';
+import { IsAuthedGuard } from './is-authed.guard';
 
 @Controller('auth')
 export class AuthenticationController {
@@ -32,6 +35,7 @@ export class AuthenticationController {
   constructor(
     private readonly authenticationService: AuthenticationService,
     private readonly socialAuthService: SocialAuthService,
+    private readonly accountDeletionService: AccountDeletionService,
   ) {}
 
   /**
@@ -188,8 +192,57 @@ export class AuthenticationController {
     const user = await this.socialAuthService.signInWithApple(
       dto.idToken,
       dto.nonce,
+      dto.authorizationCode,
     );
     this.establishSession(req, res, next, user);
+  }
+
+  /**
+   * Deletes the authenticated user's account and all of its data.
+   *
+   * The account to delete is derived exclusively from the authenticated
+   * session; no client-supplied identifier is accepted (the validation pipe
+   * rejects any request body). The deletion is transactional and runs only
+   * after any required provider disconnection succeeds.
+   */
+  @Delete('account')
+  @HttpCode(200)
+  @UseGuards(IsAuthedGuard)
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  async deleteAccount(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Body() body: Record<string, unknown> | undefined,
+  ) {
+    // The endpoint never accepts a request body: any client-supplied
+    // identifier (user ID, email, ...) must be impossible to submit. Rejecting
+    // the body outright also makes abuse attempts visible in one place.
+    if (body && Object.keys(body).length > 0) {
+      throw new ServerError(
+        'INVALID_REQUEST',
+        'Request body not accepted',
+        400,
+      );
+    }
+
+    const userId = (req.user as UserDTO).id;
+    await this.accountDeletionService.deleteAccount(userId);
+
+    // The deletion already removed every session row belonging to the user.
+    // Tear down this request's session defensively and always clear the
+    // cookie, so the client is signed out regardless of store state.
+    try {
+      await new Promise<void>((resolve) => {
+        req.logout(() => resolve());
+      });
+      await new Promise<void>((resolve) => {
+        req.session.destroy(() => resolve());
+      });
+    } catch (err) {
+      this.logger.error('Error destroying session after account deletion', err);
+    }
+    res.clearCookie('connect.sid');
+    res.send({ data: { message: 'Account deleted' } });
   }
 
   @Post('forgot-password')

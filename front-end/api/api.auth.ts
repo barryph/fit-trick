@@ -44,6 +44,14 @@ interface GoogleLoginDTO {
 interface AppleLoginDTO {
   idToken: string;
   nonce: string;
+  // Apple's authorization code for this sign-in. The backend exchanges it for
+  // a refresh token it stores server-side (never returned here) so it can
+  // revoke the user's Sign in with Apple authorization on account deletion.
+  authorizationCode: string;
+}
+
+export interface DeleteAccountResponse {
+  message: string;
 }
 
 export const authAPI = {
@@ -76,5 +84,13 @@ export const authAPI = {
 
   resetPassword(body: ResetPasswordDTO) {
     return apiClient.post<ResetPasswordResponse>('/auth/reset-password', body);
+  },
+
+  /**
+   * Deletes the authenticated user's account. The backend derives the account
+   * exclusively from the session; no identifier is sent or accepted here.
+   */
+  deleteAccount() {
+    return apiClient.delete<DeleteAccountResponse>('/auth/account');
   },
 };

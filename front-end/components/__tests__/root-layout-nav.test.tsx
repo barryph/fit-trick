@@ -66,16 +66,26 @@ describe('RootLayoutNav auth gate', () => {
     });
   });
 
-  it('does not render protected screens when logged out on a protected route', async () => {
-    setMockAuth({ isAuthenticated: false, isLoading: false, user: null });
+  it('keeps the navigator mounted when the session is invalidated on a protected route', async () => {
+    // Logged in on a protected route (e.g. account deletion from the profile
+    // screen): the gate is ready and the Stack is rendered.
+    setMockAuth({ isAuthenticated: true, isLoading: false });
     (useSegments as jest.Mock).mockReturnValue(['(tabs)']);
 
-    const { queryAllByText } = await render(<RootLayoutNav />);
+    const { getAllByText, rerender } = await render(<RootLayoutNav />);
+    await waitFor(() => {
+      expect(getAllByText('stack-screen').length).toBeGreaterThan(0);
+    });
+
+    // Session invalidated: the navigator must stay mounted while the gate
+    // redirects, or the replace action is dropped as unhandled.
+    setMockAuth({ isAuthenticated: false, isLoading: false, user: null });
+    rerender(<RootLayoutNav />);
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/login');
     });
-    expect(queryAllByText('stack-screen')).toHaveLength(0);
+    expect(getAllByText('stack-screen').length).toBeGreaterThan(0);
   });
 
   it('renders protected screens when authenticated on a protected route', async () => {

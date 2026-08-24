@@ -76,3 +76,19 @@ function mapGoogleError(error: unknown): SocialAuthError {
   }
   return new SocialAuthError('failed', 'Google sign-in failed');
 }
+
+/**
+ * Revokes this app's access on the user's Google account, as recommended by
+ * Google's account-deletion/disconnect docs. Best-effort: it only has meaning
+ * when the current device holds a Google session for the app, and the app is
+ * only granted OIDC scopes. Callers should treat failure as non-fatal (the
+ * account deletion itself is decided by the backend).
+ */
+export async function revokeGoogleAccess(): Promise<void> {
+  ensureConfigured();
+  try {
+    await GoogleSignin.revokeAccess();
+  } catch (error) {
+    throw mapGoogleError(error);
+  }
+}

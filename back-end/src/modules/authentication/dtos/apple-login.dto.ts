@@ -13,4 +13,12 @@ export default class AppleLoginDTO {
   @IsNotEmpty()
   @MaxLength(512)
   nonce: string;
+
+  // Apple's authorization code for this sign-in. Exchanged server-side for a
+  // refresh token (never returned to the client) so account deletion can
+  // revoke the user's Sign in with Apple authorization.
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(8192)
+  authorizationCode: string;
 }

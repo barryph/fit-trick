@@ -27,6 +27,8 @@ export const ErrorCode = {
   INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
   EMAIL_TAKEN: 'EMAIL_TAKEN',
   INVALID_RESET_TOKEN: 'INVALID_RESET_TOKEN',
+  ACCOUNT_NOT_FOUND: 'ACCOUNT_NOT_FOUND',
+  PROVIDER_REVOCATION_FAILED: 'PROVIDER_REVOCATION_FAILED',
 
   // Social authentication (client-side, not from the backend)
   SOCIAL_AUTH_CANCELLED: 'SOCIAL_AUTH_CANCELLED',
@@ -48,5 +50,4 @@ export interface AppError {
 }
 
 export type ApiResponse<T> =
-  | { data: T; error?: never }
-  | { error: AppError; data?: never };
+  { data: T; error?: never } | { error: AppError; data?: never };

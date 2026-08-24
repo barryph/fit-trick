@@ -10,12 +10,17 @@ export function isAppleSignInAvailable(): boolean {
 export interface AppleSignInResult {
   idToken: string;
   nonce: string;
+  // Apple's authorization code, exchanged server-side for a refresh token
+  // that is stored server-side to power account-deletion revocation. It is
+  // never kept on the client.
+  authorizationCode: string;
 }
 
 /**
  * Signs in with Apple (iOS only) and returns the identity token plus the raw
- * nonce. Apple embeds the SHA-256 of the raw nonce in the token's `nonce`
- * claim; the backend verifies that hash, binding the token to this attempt.
+ * nonce and authorization code. Apple embeds the SHA-256 of the raw nonce in
+ * the token's `nonce` claim; the backend verifies that hash, binding the token
+ * to this attempt.
  *
  * The client never decides which user account is authenticated; the backend
  * derives identity exclusively from the verified identity token.
@@ -44,10 +49,23 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
   }
 
   if (!credential.identityToken) {
-    throw new SocialAuthError('failed', 'No identity token returned from Apple');
+    throw new SocialAuthError(
+      'failed',
+      'No identity token returned from Apple',
+    );
+  }
+  if (!credential.authorizationCode) {
+    throw new SocialAuthError(
+      'failed',
+      'No authorization code returned from Apple',
+    );
   }
 
-  return { idToken: credential.identityToken, nonce };
+  return {
+    idToken: credential.identityToken,
+    nonce,
+    authorizationCode: credential.authorizationCode,
+  };
 }
 
 function mapAppleError(error: unknown): SocialAuthError {

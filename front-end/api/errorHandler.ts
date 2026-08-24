@@ -14,6 +14,9 @@ class ErrorMapper {
     INVALID_CREDENTIALS: 'Invalid email or password, please try again.',
     EMAIL_TAKEN: 'Email Is already taken.',
     INVALID_RESET_TOKEN: 'Reset token is invalid or expired',
+    ACCOUNT_NOT_FOUND: 'This account no longer exists.',
+    PROVIDER_REVOCATION_FAILED:
+      "We couldn't disconnect your account from its provider. Nothing was deleted. Please try again.",
 
     // Social authentication (client-side mapped, never from the backend)
     SOCIAL_AUTH_CANCELLED: 'Sign in was cancelled.',

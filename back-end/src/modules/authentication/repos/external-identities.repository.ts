@@ -13,6 +13,7 @@ export interface IExternalIdentitiesRepo {
     provider: ExternalProvider,
     providerSubject: string,
   ): Promise<ExternalIdentity | null>;
+  findByUserId(userId: string): Promise<ExternalIdentity[]>;
   create(
     identity: ExternalIdentity,
     trx?: DbConnection,
@@ -38,6 +39,16 @@ export default class ExternalIdentitiesRepo implements IExternalIdentitiesRepo {
     return ExternalIdentityMap.persistenceToDomain(row);
   }
 
+  async findByUserId(userId: string): Promise<ExternalIdentity[]> {
+    const result = await this.knexService.connection.raw<{
+      rows: IExternalIdentityPersistence[];
+    }>(
+      `SELECT * FROM external_identities WHERE user_id = :userId ORDER BY id`,
+      { userId },
+    );
+    return result.rows.map(ExternalIdentityMap.persistenceToDomain);
+  }
+
   async create(
     identity: ExternalIdentity,
     trx?: DbConnection,
@@ -48,8 +59,8 @@ export default class ExternalIdentitiesRepo implements IExternalIdentitiesRepo {
       rows: IExternalIdentityPersistence[];
     }>(
       `
-        INSERT INTO external_identities (provider, provider_subject, user_id, provider_email)
-        VALUES (:provider, :providerSubject, :userId, :providerEmail)
+        INSERT INTO external_identities (provider, provider_subject, user_id, provider_email, refresh_token)
+        VALUES (:provider, :providerSubject, :userId, :providerEmail, :refreshToken)
         RETURNING *
       `,
       {
@@ -57,6 +68,7 @@ export default class ExternalIdentitiesRepo implements IExternalIdentitiesRepo {
         providerSubject: row.provider_subject,
         userId: row.user_id,
         providerEmail: row.provider_email,
+        refreshToken: row.refresh_token,
       },
     );
     const created = result.rows[0];

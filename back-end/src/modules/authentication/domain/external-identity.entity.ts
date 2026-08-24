@@ -7,6 +7,10 @@ interface IExternalIdentity {
   providerSubject: string;
   userId: string;
   providerEmail: string | null;
+  // Provider refresh token (currently Apple only), captured at sign-in and
+  // stored server-side so account deletion can revoke the user's provider
+  // authorization. Never exposed to the client and never logged.
+  refreshToken: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -36,6 +40,10 @@ export default class ExternalIdentity {
 
   get providerEmail(): string | null {
     return this.props.providerEmail;
+  }
+
+  get refreshToken(): string | null {
+    return this.props.refreshToken;
   }
 
   public isPersisted(): this is ExternalIdentity & { id: string } {

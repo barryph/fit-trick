@@ -18,9 +18,13 @@ const mockLogout = authAPI.logout as jest.Mock;
 const mockRegister = authAPI.register as jest.Mock;
 const mockGoogleLogin = authAPI.googleLogin as jest.Mock;
 const mockAppleLogin = authAPI.appleLogin as jest.Mock;
+const mockDeleteAccount = authAPI.deleteAccount as jest.Mock;
 const googleSignInClient = require('@/lib/auth/google')
   .signInWithGoogle as jest.Mock;
-const appleSignInClient = require('@/lib/auth/apple').signInWithApple as jest.Mock;
+const revokeGoogleAccess = require('@/lib/auth/google')
+  .revokeGoogleAccess as jest.Mock;
+const appleSignInClient = require('@/lib/auth/apple')
+  .signInWithApple as jest.Mock;
 
 function AuthConsumer() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -47,7 +51,9 @@ describe('AuthProvider', () => {
   });
 
   it('sets authenticated state when current user is returned', async () => {
-    mockGetCurrentUser.mockResolvedValue({ data: { user: testUser } });
+    mockGetCurrentUser.mockResolvedValue({
+      data: { user: testUser, authProviders: [] },
+    });
 
     await render(
       <AuthProvider>
@@ -80,7 +86,9 @@ describe('AuthProvider', () => {
   });
 
   it('login updates auth state on success', async () => {
-    mockGetCurrentUser.mockResolvedValue({ data: undefined });
+    mockGetCurrentUser.mockResolvedValue({
+      data: undefined,
+    });
     mockLogin.mockResolvedValue({ data: { user: testUser } });
 
     let authRef: ReturnType<typeof useAuth> | undefined;
@@ -111,7 +119,9 @@ describe('AuthProvider', () => {
   });
 
   it('logout clears auth state on success', async () => {
-    mockGetCurrentUser.mockResolvedValue({ data: { user: testUser } });
+    mockGetCurrentUser.mockResolvedValue({
+      data: { user: testUser, authProviders: [] },
+    });
     mockLogout.mockResolvedValue({ data: undefined });
 
     let authRef: ReturnType<typeof useAuth> | undefined;
@@ -142,7 +152,9 @@ describe('AuthProvider', () => {
   });
 
   it('register updates auth state on success', async () => {
-    mockGetCurrentUser.mockResolvedValue({ data: undefined });
+    mockGetCurrentUser.mockResolvedValue({
+      data: undefined,
+    });
     mockRegister.mockResolvedValue({ data: { user: testUser } });
 
     let authRef: ReturnType<typeof useAuth> | undefined;
@@ -166,11 +178,7 @@ describe('AuthProvider', () => {
     });
 
     await act(async () => {
-      await authRef!.register(
-        'test@example.com',
-        'password123',
-        'password123',
-      );
+      await authRef!.register('test@example.com', 'password123', 'password123');
     });
 
     expect(await screen.findByText(testUser.email)).toBeTruthy();
@@ -180,7 +188,9 @@ describe('AuthProvider', () => {
 describe('AuthProvider social sign-in', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetCurrentUser.mockResolvedValue({ data: undefined });
+    mockGetCurrentUser.mockResolvedValue({
+      data: undefined,
+    });
   });
 
   async function renderWithTrigger() {
@@ -222,6 +232,7 @@ describe('AuthProvider social sign-in', () => {
     appleSignInClient.mockResolvedValue({
       idToken: 'apple-token',
       nonce: 'raw-nonce',
+      authorizationCode: 'apple-auth-code',
     });
     mockAppleLogin.mockResolvedValue({ data: { user: testUser } });
 
@@ -231,6 +242,7 @@ describe('AuthProvider social sign-in', () => {
     expect(mockAppleLogin).toHaveBeenCalledWith({
       idToken: 'apple-token',
       nonce: 'raw-nonce',
+      authorizationCode: 'apple-auth-code',
     });
     expect(response).toEqual({ data: { user: testUser } });
     expect(await screen.findByText(testUser.email)).toBeTruthy();
@@ -250,10 +262,10 @@ describe('AuthProvider social sign-in', () => {
   });
 
   it('surfaces friendly messages for provider failures', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    googleSignInClient.mockRejectedValue(
-      new Error('native failure'),
-    );
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    googleSignInClient.mockRejectedValue(new Error('native failure'));
 
     const auth = await renderWithTrigger();
     const response = await act(() => auth.signInWithGoogle());
@@ -303,5 +315,168 @@ describe('AuthProvider social sign-in', () => {
     expect(second.error?.message).toBe('A sign-in is already in progress.');
     expect(first.error).toBeUndefined();
     expect(mockGoogleLogin).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('AuthProvider account deletion', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetCurrentUser.mockResolvedValue({
+      data: { user: testUser, authProviders: [] },
+    });
+    mockDeleteAccount.mockResolvedValue({
+      data: { message: 'Account deleted' },
+    });
+    revokeGoogleAccess.mockResolvedValue(undefined);
+  });
+
+  async function renderWithTrigger() {
+    let authRef: ReturnType<typeof useAuth> | undefined;
+    function Trigger() {
+      authRef = useAuth();
+      return (
+        <Text>
+          {authRef.isAuthenticated ? authRef.user?.email : 'logged out'}
+        </Text>
+      );
+    }
+
+    await render(
+      <AuthProvider>
+        <Trigger />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(testUser.email)).toBeTruthy();
+    });
+    return authRef!;
+  }
+
+  it('deletes the account and clears all auth state on success', async () => {
+    const auth = await renderWithTrigger();
+
+    await act(async () => {
+      await auth.deleteAccount();
+    });
+
+    expect(mockDeleteAccount).toHaveBeenCalledTimes(1);
+    // No identifier is ever sent to the backend.
+    expect(mockDeleteAccount).toHaveBeenCalledWith();
+    expect(await screen.findByText('logged out')).toBeTruthy();
+  });
+
+  it('skips the Google disconnect for an email/password account', async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      data: { user: testUser, authProviders: [] },
+    });
+    const auth = await renderWithTrigger();
+
+    await act(async () => {
+      await auth.deleteAccount();
+    });
+
+    expect(revokeGoogleAccess).not.toHaveBeenCalled();
+    expect(mockDeleteAccount).toHaveBeenCalledTimes(1);
+  });
+
+  it('disconnects Google access first via the documented revoke flow when Google-linked', async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      data: { user: testUser, authProviders: ['google'] },
+    });
+    const auth = await renderWithTrigger();
+
+    await act(async () => {
+      await auth.deleteAccount();
+    });
+
+    expect(revokeGoogleAccess).toHaveBeenCalledTimes(1);
+    // The disconnect must happen before the deletion request.
+    expect(revokeGoogleAccess.mock.invocationCallOrder[0]).toBeLessThan(
+      mockDeleteAccount.mock.invocationCallOrder[0],
+    );
+    expect(mockDeleteAccount).toHaveBeenCalledTimes(1);
+  });
+
+  it('proceeds with deletion when the Google revoke fails (best-effort)', async () => {
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    mockGetCurrentUser.mockResolvedValue({
+      data: { user: testUser, authProviders: ['google'] },
+    });
+    revokeGoogleAccess.mockRejectedValue(new Error('no google session'));
+    const auth = await renderWithTrigger();
+
+    await act(async () => {
+      await auth.deleteAccount();
+    });
+
+    expect(mockDeleteAccount).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('logged out')).toBeTruthy();
+    consoleSpy.mockRestore();
+  });
+
+  it('fails closed and does not disconnect Google when the provider lookup fails', async () => {
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    // First call (boot fetchUser) succeeds; the lookup inside deleteAccount
+    // then fails, so no Google disconnect may be attempted.
+    mockGetCurrentUser
+      .mockResolvedValueOnce({
+        data: { user: testUser, authProviders: ['google'] },
+      })
+      .mockRejectedValueOnce(new Error('network down'));
+    const auth = await renderWithTrigger();
+
+    await act(async () => {
+      await auth.deleteAccount();
+    });
+
+    expect(revokeGoogleAccess).not.toHaveBeenCalled();
+    expect(mockDeleteAccount).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('logged out')).toBeTruthy();
+    consoleSpy.mockRestore();
+  });
+
+  it('treats a missing account as already-deleted (idempotent)', async () => {
+    mockDeleteAccount.mockResolvedValue({
+      error: {
+        code: 'ACCOUNT_NOT_FOUND',
+        message: 'Account not found',
+      },
+    });
+    const auth = await renderWithTrigger();
+
+    await act(async () => {
+      await auth.deleteAccount();
+    });
+
+    expect(await screen.findByText('logged out')).toBeTruthy();
+  });
+
+  it('propagates errors and keeps the user signed in when deletion fails', async () => {
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    mockDeleteAccount.mockResolvedValue({
+      error: {
+        code: 'PROVIDER_REVOCATION_FAILED',
+        message: 'Could not disconnect the account from its provider.',
+      },
+    });
+    const auth = await renderWithTrigger();
+
+    await expect(
+      act(async () => {
+        await auth.deleteAccount();
+      }),
+    ).rejects.toMatchObject({
+      appError: { code: 'PROVIDER_REVOCATION_FAILED' },
+    });
+
+    expect(screen.getByText(testUser.email)).toBeTruthy();
+    consoleSpy.mockRestore();
   });
 });

@@ -40,7 +40,10 @@ export class ExternalIdentityService {
     private readonly knexService: KnexService,
   ) {}
 
-  async resolveOrCreate(verified: VerifiedExternalIdentity): Promise<User> {
+  async resolveOrCreate(
+    verified: VerifiedExternalIdentity,
+    refreshToken: string | null = null,
+  ): Promise<User> {
     const existing = await this.findExisting(verified);
     if (existing) {
       return this.loadUser(existing);
@@ -50,7 +53,7 @@ export class ExternalIdentityService {
 
     try {
       const email = await this.pickEmail(verified, syntheticEmail);
-      return await this.createUserAndIdentity(verified, email);
+      return await this.createUserAndIdentity(verified, email, refreshToken);
     } catch (err) {
       // A concurrent first sign-in for the same identity won the race.
       if (isUniqueViolation(err)) {
@@ -112,6 +115,7 @@ export class ExternalIdentityService {
   private async createUserAndIdentity(
     verified: VerifiedExternalIdentity,
     email: UserEmail,
+    refreshToken: string | null,
   ): Promise<User> {
     const newUser = User.createNew({
       email,
@@ -125,6 +129,7 @@ export class ExternalIdentityService {
         providerSubject: verified.subject,
         userId: user.id!,
         providerEmail: verified.email,
+        refreshToken,
       });
       await this.externalIdentitiesRepo.create(identity, trx);
       return user;

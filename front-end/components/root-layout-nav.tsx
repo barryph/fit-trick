@@ -30,10 +30,12 @@ export function RootLayoutNav() {
     }
   }, [isAuthenticated, isLoading, segments, router, inAuthGroup]);
 
-  // Never render protected screens while the session is invalid. Unmount them
-  // synchronously instead of waiting for the async redirect, so no
-  // user-dependent hook can run against a logged-out user.
-  if (!isReady || (!isAuthenticated && !inAuthGroup)) return null;
+  // Keep the navigator mounted while the session-gate effect redirects: the
+  // `replace` action must reach a navigator that still registers the target
+  // route, or it is dropped as unhandled. Protected screens are safe to render
+  // briefly against a logged-out user because they return null when `user` is
+  // absent, so no user-dependent hook runs.
+  if (!isReady) return null;
 
   return (
     <Stack>

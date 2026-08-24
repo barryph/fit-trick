@@ -150,3 +150,49 @@ export async function startGoogleCertsServer(
     },
   };
 }
+
+export interface AppleApiServer {
+  url: string;
+  close: () => Promise<void>;
+  requests: Array<{ path: string; body: URLSearchParams }>;
+  respondWith: (status: number, body?: unknown) => void;
+}
+
+/**
+ * A configurable local stand-in for Apple's token/revoke endpoints so the
+ * authorization-code exchange and revocation flows can be exercised against
+ * real HTTP without touching Apple.
+ */
+export async function startAppleApiServer(): Promise<AppleApiServer> {
+  let nextStatus = 200;
+  let nextBody: unknown = {};
+  const requests: Array<{ path: string; body: URLSearchParams }> = [];
+
+  const server: Server = createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    req.on('end', () => {
+      const raw = Buffer.concat(chunks).toString('utf8');
+      requests.push({ path: req.url ?? '', body: new URLSearchParams(raw) });
+      res.statusCode = nextStatus;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(nextBody));
+    });
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  if (!address || typeof address === 'string') {
+    throw new Error('Failed to determine Apple API server address');
+  }
+
+  return {
+    url: `http://127.0.0.1:${address.port}`,
+    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+    requests,
+    respondWith: (status, body = {}) => {
+      nextStatus = status;
+      nextBody = body;
+    },
+  };
+}

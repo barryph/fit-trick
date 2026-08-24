@@ -26,6 +26,7 @@ describe('SocialAuthService', () => {
     } as unknown as jest.Mocked<GoogleProvider>;
     appleProvider = {
       verifyIdentityToken: jest.fn(),
+      exchangeAuthorizationCode: jest.fn(),
     } as unknown as jest.Mocked<AppleProvider>;
     externalIdentityService = {
       resolveOrCreate: jest.fn(),
@@ -66,23 +67,70 @@ describe('SocialAuthService', () => {
     expect(user).toEqual({ id: '42', email: 'user@example.com' });
   });
 
-  it('signs in with Apple using the verified identity only', async () => {
+  it('signs in with Apple, exchanging the code for a stored refresh token', async () => {
     appleProvider.verifyIdentityToken.mockResolvedValue({
       provider: 'apple',
       subject: 'apple-subject-1',
       email: 'user@example.com',
+      clientId: 'com.example.app',
     });
+    appleProvider.exchangeAuthorizationCode.mockResolvedValue(
+      'apple-refresh-token',
+    );
     externalIdentityService.resolveOrCreate.mockResolvedValue(
       makeUser('43', 'user@example.com'),
     );
 
-    const user = await service.signInWithApple('apple-id-token', 'raw-nonce');
+    const user = await service.signInWithApple(
+      'apple-id-token',
+      'raw-nonce',
+      'authorization-code',
+    );
 
     expect(appleProvider.verifyIdentityToken).toHaveBeenCalledWith(
       'apple-id-token',
       'raw-nonce',
     );
+    expect(appleProvider.exchangeAuthorizationCode).toHaveBeenCalledWith(
+      'authorization-code',
+      'com.example.app',
+    );
+    expect(externalIdentityService.resolveOrCreate).toHaveBeenCalledWith(
+      {
+        provider: 'apple',
+        subject: 'apple-subject-1',
+        email: 'user@example.com',
+      },
+      'apple-refresh-token',
+    );
     expect(user.id).toBe('43');
+  });
+
+  it('signs the user in even when the code exchange fails', async () => {
+    appleProvider.verifyIdentityToken.mockResolvedValue({
+      provider: 'apple',
+      subject: 'apple-subject-1',
+      email: 'user@example.com',
+      clientId: 'com.example.app',
+    });
+    appleProvider.exchangeAuthorizationCode.mockRejectedValue(
+      new OAuthCredentialError(),
+    );
+    externalIdentityService.resolveOrCreate.mockResolvedValue(
+      makeUser('43', 'user@example.com'),
+    );
+
+    const user = await service.signInWithApple(
+      'apple-id-token',
+      'raw-nonce',
+      'authorization-code',
+    );
+
+    expect(user.id).toBe('43');
+    expect(externalIdentityService.resolveOrCreate).toHaveBeenCalledWith(
+      expect.anything(),
+      null,
+    );
   });
 
   it('propagates provider verification failures', async () => {

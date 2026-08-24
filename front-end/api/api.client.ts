@@ -26,6 +26,19 @@ class APIClient {
       });
 
       if (options.method === 'DELETE') {
+        let json: ServerResponse<T>;
+        try {
+          json = await response.json();
+        } catch {
+          return { data: undefined as T };
+        }
+
+        if (json.error) {
+          return {
+            error: errorMapper.mapError(json.error),
+          };
+        }
+
         if (!response.ok) {
           return {
             error: {
@@ -34,14 +47,10 @@ class APIClient {
             },
           };
         }
-        try {
-          const json: ServerResponse<T> = await response.json();
-          return {
-            data: json.data!,
-          };
-        } catch {
-          return { data: undefined as T };
-        }
+
+        return {
+          data: json.data!,
+        };
       }
 
       const json: ServerResponse<T> = await response.json();
