@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 import Background from '@/components/backgrounds/background';
@@ -117,23 +118,29 @@ export default function Categories() {
 
       <ScrollView>
         <Container style={styles.scrollContent}>
-          <ThemedText style={styles.title} type="title" size="medium">
-            Categories
-          </ThemedText>
-
-          <View style={styles.insightsLinks}>
-            <Pressable
-              onPress={() => router.push('/categories/insights')}
-              style={styles.insightsLink}
+          <View style={styles.headlineRow}>
+            <ThemedText
+              style={styles.headline}
+              type="defaultBold"
+              size="medium"
             >
-              <ThemedText
-                size="small"
-                type="default"
-                style={styles.insightsLinkText}
+              Categories
+            </ThemedText>
+
+            <View style={styles.insightsLinks}>
+              <Pressable
+                onPress={() => router.push('/categories/insights')}
+                style={styles.insightsLink}
               >
-                See Insights &rarr;
-              </ThemedText>
-            </Pressable>
+                <ThemedText
+                  size="small"
+                  type="default"
+                  style={styles.insightsLinkText}
+                >
+                  See Insights &rarr;
+                </ThemedText>
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.categories}>
@@ -161,7 +168,9 @@ export default function Categories() {
                   <View style={styles.leftRow}>
                     <View style={styles.topRow}>
                       <Dot backgroundColor={category.color} />
-                      <ThemedText>{category.name}</ThemedText>
+                      <ThemedText type="defaultBold">
+                        {category.name}
+                      </ThemedText>
                     </View>
                     <View style={styles.bottomRow}>
                       <ThemedText style={styles.bottomRowText} size="small">
@@ -178,12 +187,15 @@ export default function Categories() {
                       </ThemedText>
                     </View>
                   </View>
-                  <View>
-                    <FontAwesome6
-                      style={[{ color: '#eee' }, styles.settingsButton]}
-                      name="gear"
-                      size={26}
-                    />
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 6,
+                      gap: 9,
+                    }}
+                  >
+                    <AntDesign name="edit" size={18} color="#eeed" />
                   </View>
                 </ListItemShell>
               </Pressable>
@@ -249,22 +261,23 @@ export default function Categories() {
 const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 100,
-    gap: 8,
+    gap: 24,
   },
-  title: {
+  headlineRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 10,
-    marginBottom: 3,
   },
-  insightsLinks: {
-    gap: 8,
-    marginBottom: 16,
+  headline: {
+    color: '#fff',
+    fontFamily: '"system-ui"',
+    fontWeight: 700,
   },
-  insightsLink: {
-    alignSelf: 'flex-start',
-  },
-  insightsLinkText: {
-    textDecorationLine: 'underline',
-  },
+  insightsLinks: {},
+  insightsLink: {},
+  insightsLinkText: {},
   editModalTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -281,9 +294,9 @@ const styles = StyleSheet.create({
   category: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 11,
+    paddingTop: 14,
     paddingBottom: 12,
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
   },
   leftRow: {
     flexGrow: 1,
@@ -303,7 +316,7 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     paddingVertical: 9,
-    paddingHorizontal: 9,
+    // paddingHorizontal: 9,
   },
   getStartedPill: {
     paddingTop: 14,

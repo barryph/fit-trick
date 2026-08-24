@@ -34,8 +34,8 @@ export default function GoalsScreen() {
       <ScrollView>
         <Container style={styles.scrollContent}>
           <View>
-            <ThemedText style={styles.title} type="title" size="large">
-              Monitor your frequency
+            <ThemedText style={styles.title} type="defaultBold" size="medium">
+              Monitor Your Frequency
             </ThemedText>
           </View>
 
@@ -143,8 +143,9 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   title: {
-    fontSize: 24,
     marginTop: 10,
+    fontFamily: '"system-ui"',
+    fontWeight: 700,
   },
   subTitle: {
     marginTop: 8,

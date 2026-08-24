@@ -173,17 +173,9 @@ function DashboardContent({ userId }: { userId: string }) {
   return (
     <View style={styles.container}>
       <Background />
-
       <ScrollView>
         <Container style={styles.scrollContent}>
-          <View
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
+          <View style={styles.headlineRow}>
             <ThemedText
               type="defaultBold"
               style={[
@@ -192,22 +184,22 @@ function DashboardContent({ userId }: { userId: string }) {
               ]}
               size="medium"
             >
-              Activities Queue
+              Activities Center
             </ThemedText>
-          </View>
 
-          <Pressable
-            onPress={() => router.push('/activities/insights')}
-            style={styles.insightsLink}
-          >
-            <ThemedText
-              size="small"
-              type="default"
-              style={styles.insightsLinkText}
+            <Pressable
+              onPress={() => router.push('/activities/insights')}
+              style={styles.insightsLink}
             >
-              See Insights &rarr;
-            </ThemedText>
-          </Pressable>
+              <ThemedText
+                size="small"
+                type="default"
+                style={styles.insightsLinkText}
+              >
+                See Insights &rarr;
+              </ThemedText>
+            </Pressable>
+          </View>
 
           <FilterList
             label="Categories"
@@ -280,15 +272,22 @@ function DashboardContent({ userId }: { userId: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#181d23',
   },
   scrollContent: {
     display: 'flex',
     gap: 8,
     paddingBottom: 100,
   },
-  headline: {
+  headlineRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 10,
     marginBottom: 3,
+  },
+  headline: {
     color: '#fff',
     fontFamily: '"system-ui"',
     fontWeight: 700,
@@ -296,13 +295,8 @@ const styles = StyleSheet.create({
   headlineNoCategories: {
     marginBottom: 3,
   },
-  insightsLink: {
-    alignSelf: 'flex-start',
-    marginBottom: 6,
-  },
-  insightsLinkText: {
-    textDecorationLine: 'underline',
-  },
+  insightsLink: {},
+  insightsLinkText: {},
   getStartedPill: {
     paddingTop: 14,
     paddingHorizontal: 15,

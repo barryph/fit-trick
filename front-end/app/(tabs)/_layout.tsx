@@ -80,12 +80,32 @@ export default function TabLayout() {
           name="index"
           options={{
             ...headerOptions,
-            title: 'Home',
+            title: 'Activities',
             tabBarIcon: ({ color }) => (
               <Feather name="activity" size={24} color={color} />
             ),
           }}
         />
+
+        <Tabs.Screen
+          name="categories/index"
+          options={{
+            ...headerOptions,
+            title: 'Categories',
+            tabBarIcon: ({ color }) => (
+              <FontAwesome6 name="layer-group" size={24} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="categories/insights"
+          options={{
+            ...headerOptions,
+            title: 'Category Insights',
+            href: null,
+          }}
+        />
+
         <Tabs.Screen
           name="timeline"
           options={{
@@ -111,24 +131,6 @@ export default function TabLayout() {
           options={{
             ...headerOptions,
             title: 'Goal Insights',
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="categories/index"
-          options={{
-            ...headerOptions,
-            title: 'Categories',
-            tabBarIcon: ({ color }) => (
-              <FontAwesome6 name="layer-group" size={24} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="categories/insights"
-          options={{
-            ...headerOptions,
-            title: 'Category Insights',
             href: null,
           }}
         />
