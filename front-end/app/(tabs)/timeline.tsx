@@ -449,19 +449,25 @@ function TimelineScreen() {
                 <View
                   key={date.full}
                   style={[
-                    styles.dateCell,
+                    styles.dateCellContainer,
+
                     date.isWeekStart && styles.weekStartHeaderCell,
                   ]}
                 >
-                  <ThemedText style={styles.dateMonthDay}>
-                    {date.monthDay}
-                  </ThemedText>
-                  <ThemedText style={styles.dateWeekday} type="defaultSemiBold">
-                    {date.weekday}
-                  </ThemedText>
-                  {/* <ThemedText style={styles.dateWeekNum} size="extraSmall"> */}
-                  {/*   {date.num} */}
-                  {/* </ThemedText> */}
+                  <View style={[styles.dateCell]}>
+                    <ThemedText style={styles.dateMonthDay}>
+                      {date.monthDay}
+                    </ThemedText>
+                    <ThemedText
+                      style={styles.dateWeekday}
+                      type="defaultSemiBold"
+                    >
+                      {date.weekday}
+                    </ThemedText>
+                    {/* <ThemedText style={styles.dateWeekNum} size="extraSmall"> */}
+                    {/*   {date.num} */}
+                    {/* </ThemedText> */}
+                  </View>
                 </View>
               ))}
             </View>
@@ -523,33 +529,35 @@ function TimelineScreen() {
                         <View
                           key={cellKey}
                           style={[
-                            styles.statusCellContainer,
+                            styles.statusCellContainerContainer,
                             date.isWeekStart && styles.weekStartCellContainer,
                           ]}
                         >
-                          <Pressable
-                            disabled={isToggling}
-                            onPress={() =>
-                              handleCellClick(
-                                cellKey,
-                                activity.id,
-                                date.full,
-                                isCompleted,
-                              )
-                            }
-                            style={[
-                              styles.statusCell,
-                              isCompleted
-                                ? styles.statusCellComplete
-                                : styles.statusCellIncomplete,
-                              isCompleted &&
-                              activity.category?.color && {
-                                backgroundColor: activity.category?.color,
-                                boxShadow: `0px 0px 8px 1px ${activity.category.color}33`,
-                              },
-                              isToggling && styles.statusCellToggling,
-                            ]}
-                          />
+                          <View style={[styles.statusCellContainer]}>
+                            <Pressable
+                              disabled={isToggling}
+                              onPress={() =>
+                                handleCellClick(
+                                  cellKey,
+                                  activity.id,
+                                  date.full,
+                                  isCompleted,
+                                )
+                              }
+                              style={[
+                                styles.statusCell,
+                                isCompleted
+                                  ? styles.statusCellComplete
+                                  : styles.statusCellIncomplete,
+                                isCompleted &&
+                                activity.category?.color && {
+                                  backgroundColor: activity.category?.color,
+                                  boxShadow: `0px 0px 8px 1px ${activity.category.color}33`,
+                                },
+                                isToggling && styles.statusCellToggling,
+                              ]}
+                            />
+                          </View>
                         </View>
                       );
                     })}
@@ -659,13 +667,16 @@ const styles = StyleSheet.create({
     backgroundColor: headersBackground,
     width: '100%',
     zIndex: 20,
+    paddingHorizontal: CELL_GAP / 2,
   },
   headerDatesContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: CELL_GAP,
-    gap: CELL_GAP,
     height: '100%',
+  },
+  dateCellContainer: {
+    paddingHorizontal: CELL_GAP / 2,
+    justifyContent: 'center',
   },
   dateCell: {
     width: CELL_WIDTH,
@@ -675,6 +686,7 @@ const styles = StyleSheet.create({
   },
   // Subtle divider leading the first day of each new calendar week
   weekStartHeaderCell: {
+    height: '100%',
     borderLeftWidth: 1,
     borderLeftColor: weekDividerColor,
   },
@@ -725,16 +737,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: ROW_HEIGHT,
-    paddingHorizontal: CELL_GAP,
-    gap: CELL_GAP,
+    paddingHorizontal: CELL_GAP / 2,
+    // gap: CELL_GAP,
     // borderBottomWidth: 1,
     // borderBottomColor: 'rgba(255,255,255,.1)',
+  },
+  statusCellContainerContainer: {
+    paddingHorizontal: CELL_GAP / 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusCellContainer: {
     width: CELL_WIDTH,
     height: CELL_HEIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   // Week-boundary divider: stretches the full row height so the line reads
   // continuously down the grid while the cell itself stays centered.
