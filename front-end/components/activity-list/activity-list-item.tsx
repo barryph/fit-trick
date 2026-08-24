@@ -299,8 +299,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.45,
   },
   activityBarContainer: {
-    marginHorizontal: 3,
-    height: 16,
+    // Horizontal margin is for angled dividers. Which doesn't work on android
+    // marginHorizontal: 3,
+    height: 12,
     // backgroundColor: '#d6daea',
     backgroundColor: '#4b4b5c',
     position: 'relative',
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
     borderRightColor: '#00000088',
   },
   goalProgress: {
-    marginTop: 10,
+    marginTop: 6,
   },
   goalText: {
     textAlign: 'right',
