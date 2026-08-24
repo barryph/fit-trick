@@ -7,7 +7,7 @@ export default function Logo() {
       type="defaultBold"
       style={{
         color: '#fff',
-        fontSize: 32,
+        fontSize: 24,
       }}
     >
       Kad
@@ -15,7 +15,7 @@ export default function Logo() {
         type="defaultBold"
         style={{
           color: Colors.light.faint,
-          fontSize: 32,
+          fontSize: 24,
         }}
       >
         ence

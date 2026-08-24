@@ -29,7 +29,7 @@ export default function TabLayout() {
       <SafeAreaView
         edges={['top']}
         style={{
-          paddingVertical: 14,
+          paddingVertical: 10,
           paddingHorizontal: 15,
           flexDirection: 'row',
           justifyContent: 'space-between',
@@ -44,9 +44,9 @@ export default function TabLayout() {
           <View
             style={{
               backgroundColor: 'rgba(255,255,255,.11)',
-              borderRadius: 17,
-              height: 55,
-              width: 55,
+              borderRadius: 12,
+              height: 40,
+              width: 40,
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
@@ -54,7 +54,7 @@ export default function TabLayout() {
             }}
           >
             <ThemedText style={{ color: '#d8ecff', fontSize: 24 }}>
-              <FontAwesome6 name="bars-staggered" size={26} />
+              <FontAwesome6 name="bars-staggered" size={22} />
             </ThemedText>
           </View>
         </Pressable>

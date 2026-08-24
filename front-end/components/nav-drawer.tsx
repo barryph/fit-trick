@@ -15,7 +15,7 @@ import Logo from '@/components/logo';
 import BlueBackground from '@/components/backgrounds/blue-background';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const DRAWER_WIDTH = Math.floor((SCREEN_WIDTH / 100) * 75);
+const DRAWER_WIDTH = Math.floor((SCREEN_WIDTH / 100) * 85);
 
 interface NavLinkProps {
   children: React.ReactNode;
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 21,
+    paddingTop: 12,
     paddingBottom: 14,
   },
   closeButton: {
@@ -171,15 +171,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   navText: {
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 24,
+    lineHeight: 28,
     color: '#fff',
     fontWeight: '600',
     textAlign: 'right',
   },
   navBottom: {
     borderTopWidth: 1,
-    marginTop: 35,
+    marginTop: 25,
     paddingTop: 10,
     borderTopColor: '#fff',
     opacity: 0.6,
