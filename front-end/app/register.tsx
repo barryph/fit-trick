@@ -118,7 +118,10 @@ export default function RegisterScreen() {
                 placeholder="Password"
                 value={field.value}
                 onChangeText={field.onChange}
+                autoCapitalize="none"
+                autoCorrect={false}
                 secureTextEntry
+                textContentType="password"
                 errorMessage={fieldState.error?.message}
                 editable={!isLoading && !socialLoading}
               />
@@ -134,7 +137,10 @@ export default function RegisterScreen() {
                 placeholder="Password Confirm"
                 value={field.value}
                 onChangeText={field.onChange}
+                autoCapitalize="none"
+                autoCorrect={false}
                 secureTextEntry
+                textContentType="password"
                 errorMessage={fieldState.error?.message}
                 editable={!isLoading && !socialLoading}
               />

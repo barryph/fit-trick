@@ -110,9 +110,9 @@ export default function LoginScreen() {
                 placeholder="Password"
                 value={field.value}
                 onChangeText={field.onChange}
-                secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
+                secureTextEntry
                 textContentType="password"
                 errorMessage={fieldState.error?.message}
                 editable={!isLoading && !socialLoading}
