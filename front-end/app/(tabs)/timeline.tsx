@@ -44,11 +44,15 @@ const HEADER_ROW_EXTRA_HEIGHT = 12;
 const LEFT_COLUMN_WIDTH = 60; // To allow the ticker text to show
 // const headersBackground = '#1a4163';
 const headersBackground = 'rgba(26, 65, 99, 0.30)';
+// Subtle vertical line drawn at the start of each new week (Monday column)
+const weekDividerColor = 'rgba(255, 255, 255, 0.20)';
 
 type TimelineDateColumn = {
   full: string;
   monthDay: string;
   weekday: string;
+  /** True when this column begins a new week (Monday, per the app's Mon-Sun weeks). */
+  isWeekStart: boolean;
 };
 
 function toTimelineDateColumn(date: Date): TimelineDateColumn {
@@ -66,6 +70,8 @@ function toTimelineDateColumn(date: Date): TimelineDateColumn {
       .reverse()
       .join('\n'),
     weekday: date.toLocaleDateString(undefined, { weekday: 'short' }),
+    // Weeks run Monday -> Sunday, so Monday begins the next week.
+    isWeekStart: date.getDay() === 1,
     // num: ((date.getDay() + 6) % 7) + 1,
   };
 }
@@ -440,7 +446,13 @@ function TimelineScreen() {
           >
             <View style={styles.headerDatesContainer}>
               {dateColumns.map((date) => (
-                <View key={date.full} style={[styles.dateCell]}>
+                <View
+                  key={date.full}
+                  style={[
+                    styles.dateCell,
+                    date.isWeekStart && styles.weekStartHeaderCell,
+                  ]}
+                >
                   <ThemedText style={styles.dateMonthDay}>
                     {date.monthDay}
                   </ThemedText>
@@ -508,7 +520,13 @@ function TimelineScreen() {
                       const cellKey = `${activity.id}-${date.full}`;
                       const isToggling = togglingCells.has(cellKey);
                       return (
-                        <View key={cellKey} style={styles.statusCellContainer}>
+                        <View
+                          key={cellKey}
+                          style={[
+                            styles.statusCellContainer,
+                            date.isWeekStart && styles.weekStartCellContainer,
+                          ]}
+                        >
                           <Pressable
                             disabled={isToggling}
                             onPress={() =>
@@ -655,6 +673,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'flex-start',
   },
+  // Subtle divider leading the first day of each new calendar week
+  weekStartHeaderCell: {
+    borderLeftWidth: 1,
+    borderLeftColor: weekDividerColor,
+  },
   dateMonthDay: {
     color: '#fff',
     fontSize: 12,
@@ -712,6 +735,13 @@ const styles = StyleSheet.create({
     height: CELL_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // Week-boundary divider: stretches the full row height so the line reads
+  // continuously down the grid while the cell itself stays centered.
+  weekStartCellContainer: {
+    height: ROW_HEIGHT,
+    borderLeftWidth: 1,
+    borderLeftColor: weekDividerColor,
   },
   statusCell: {
     width: CELL_WIDTH,
