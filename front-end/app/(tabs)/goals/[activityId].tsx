@@ -11,6 +11,8 @@ import GoalAreaChart from '@/components/goals/goal-area-chart';
 import GoalAdherenceRing from '@/components/goals/goal-adherence-ring';
 import GoalHeatmap from '@/components/goals/goal-heatmap';
 import { useGoalStatsQuery } from '@/hooks/queries/use-goals';
+import { useStaleRefetchOnFocus } from '@/hooks/queries/use-stale-refetch-on-focus';
+import { queryKeys } from '@/lib/query/keys';
 import { formatGoalProgress } from '@/lib/goals/goal-progress';
 import { YYYYMMDD } from '@/utils/date';
 
@@ -27,6 +29,12 @@ export default function GoalInsightsScreen() {
     isPending,
     isError,
   } = useGoalStatsQuery(isString(activityId) ? activityId : undefined, today);
+
+  // Refresh silently when returning to this screen with stale stats, e.g.
+  // after an activity was completed on another screen. Fresh data is kept.
+  useStaleRefetchOnFocus(
+    queryKeys.goals.detail(isString(activityId) ? activityId : '', today),
+  );
 
   if (isPending) {
     return <LoaderScreen text="Loading goal insights..." />;

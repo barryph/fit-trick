@@ -19,7 +19,7 @@ async function fetchGoalStats(
 
 export function useGoalsQuery(today: string) {
   return useQuery({
-    queryKey: queryKeys.goals.all,
+    queryKey: queryKeys.goals.all(today),
     queryFn: () => fetchGoals(today),
     enabled: today.length > 0,
   });
@@ -30,7 +30,7 @@ export function useGoalStatsQuery(
   today: string,
 ) {
   return useQuery({
-    queryKey: queryKeys.goals.detail(activityId ?? ''),
+    queryKey: queryKeys.goals.detail(activityId ?? '', today),
     queryFn: () => fetchGoalStats(activityId!, today),
     enabled: activityId !== undefined && activityId !== '' && today.length > 0,
   });

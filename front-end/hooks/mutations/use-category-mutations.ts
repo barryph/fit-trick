@@ -54,6 +54,8 @@ export function useEditCategoryMutation() {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.activities.all,
       });
+      // The goals list embeds the category color; refresh it on color changes.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.goals.base });
     },
   });
 }
@@ -74,6 +76,9 @@ export function useDeleteCategoryMutation() {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.activities.all,
       });
+      // The goals list embeds the category color; refresh it when the
+      // category (and therefore the color) disappears.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.goals.base });
     },
   });
 }

@@ -9,6 +9,9 @@ jest.mock('expo-router', () => ({
   }),
   useSegments: jest.fn(() => []),
   useLocalSearchParams: jest.fn(() => ({})),
+  // No-op by default; individual tests can replace the implementation to
+  // simulate screen focus (see test/goals-sync.test.tsx).
+  useFocusEffect: jest.fn(),
   Link: ({ children }: { children: React.ReactNode }) => children,
   Stack: Object.assign(
     ({ children }: { children: React.ReactNode }) => children,

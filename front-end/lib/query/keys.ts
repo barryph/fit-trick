@@ -15,8 +15,11 @@ export const queryKeys = {
     range: (from: string, to: string) => ['events', from, to] as const,
   },
   goals: {
-    all: ['goals'] as const,
-    detail: (activityId: number | string) =>
-      ['goals', String(activityId)] as const,
+    // Prefix matching every goals query (list + any detail, any date).
+    // Used by mutations to invalidate goals after activity/category changes.
+    base: ['goals'] as const,
+    all: (today: string) => ['goals', 'all', today] as const,
+    detail: (activityId: number | string, today: string) =>
+      ['goals', String(activityId), today] as const,
   },
 };

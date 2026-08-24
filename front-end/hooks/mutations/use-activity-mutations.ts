@@ -44,16 +44,10 @@ function invalidateTimeline(queryClient: ReturnType<typeof useQueryClient>) {
   return queryClient.invalidateQueries({ queryKey: queryKeys.timeline.all });
 }
 
-function invalidateGoals(
-  queryClient: ReturnType<typeof useQueryClient>,
-  activityId?: number | string,
-) {
-  void queryClient.invalidateQueries({ queryKey: queryKeys.goals.all });
-  if (activityId !== undefined) {
-    void queryClient.invalidateQueries({
-      queryKey: queryKeys.goals.detail(activityId),
-    });
-  }
+function invalidateGoals(queryClient: ReturnType<typeof useQueryClient>) {
+  // The base prefix matches the goals list and every goal's stats query
+  // regardless of the `today` each was fetched with.
+  void queryClient.invalidateQueries({ queryKey: queryKeys.goals.base });
 }
 
 export function useCreateActivityMutation() {
@@ -77,7 +71,7 @@ export function useCreateActivityMutation() {
         activity,
       );
       void invalidateTimeline(queryClient);
-      invalidateGoals(queryClient, activity.id);
+      invalidateGoals(queryClient);
     },
   });
 }
@@ -104,7 +98,7 @@ export function useEditActivityMutation() {
     onSuccess: (activity) => {
       setActivityInCaches(queryClient, activity);
       void invalidateTimeline(queryClient);
-      invalidateGoals(queryClient, activity.id);
+      invalidateGoals(queryClient);
     },
   });
 }
@@ -121,7 +115,7 @@ export function useDeleteActivityMutation() {
     onSuccess: (activityId) => {
       removeActivityFromCaches(queryClient, activityId);
       void invalidateTimeline(queryClient);
-      invalidateGoals(queryClient, activityId);
+      invalidateGoals(queryClient);
     },
   });
 }
@@ -150,7 +144,7 @@ export function useCompleteActivityMutation() {
             ? patchTimelineSet(current, activity.id, date, true)
             : current,
       );
-      invalidateGoals(queryClient, activity.id);
+      invalidateGoals(queryClient);
     },
   });
 }
@@ -179,7 +173,7 @@ export function useUndoActivityMutation() {
             ? patchTimelineSet(current, activity.id, date, false)
             : current,
       );
-      invalidateGoals(queryClient, activity.id);
+      invalidateGoals(queryClient);
     },
   });
 }
