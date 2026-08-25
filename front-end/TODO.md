@@ -11,3 +11,4 @@
 iOS
 - Apple Signin
 - Configure firebase google-services.json ios files
+- GOOGLE_IOS_URL_SCHEME still needs to be set before iOS builds with Google sign-in
