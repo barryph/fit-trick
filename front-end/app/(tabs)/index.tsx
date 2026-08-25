@@ -24,6 +24,10 @@ import { useCategoriesQuery } from '@/hooks/queries/use-categories';
 import { useTimelineQuery } from '@/hooks/queries/use-timeline';
 import { useCompleteActivityMutation } from '@/hooks/mutations/use-activity-mutations';
 import { useActivityQueue } from '@/hooks/use-activity-queue';
+import { useGuide } from '@/hooks/use-guide';
+import GuideModal from '@/components/guide/guide-modal';
+import GuideInfoButton from '@/components/guide/guide-info-button';
+import { HOME_GUIDE_STEPS } from './home-guide-steps';
 
 function sortActivities(acts: IActivityClient[] = []) {
   return [...acts].sort((a, b) => {
@@ -100,6 +104,9 @@ function DashboardContent({ userId }: { userId: string }) {
   } = useActivityQueue(userId);
 
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
+
+  // Home onboarding guide — auto-shows on first visit; the info (i) icon reopens it.
+  const guide = useGuide({ pageId: 'home' });
 
   const today = YYYYMMDD();
 
@@ -187,18 +194,21 @@ function DashboardContent({ userId }: { userId: string }) {
               Activities Center
             </ThemedText>
 
-            <Pressable
-              onPress={() => router.push('/activities/insights')}
-              style={styles.insightsLink}
-            >
-              <ThemedText
-                size="small"
-                type="default"
-                style={styles.insightsLinkText}
+            <View style={styles.headlineActions}>
+              <Pressable
+                onPress={() => router.push('/activities/insights')}
+                style={styles.insightsLink}
               >
-                See Insights &rarr;
-              </ThemedText>
-            </Pressable>
+                <ThemedText
+                  size="small"
+                  type="default"
+                  style={styles.insightsLinkText}
+                >
+                  See Insights &rarr;
+                </ThemedText>
+              </Pressable>
+              <GuideInfoButton onPress={guide.open} />
+            </View>
           </View>
 
           <FilterList
@@ -265,6 +275,13 @@ function DashboardContent({ userId }: { userId: string }) {
         label="Add Activity"
         onPress={() => router.push('/activities/create')}
       />
+
+      <GuideModal
+        visible={guide.isOpen}
+        steps={HOME_GUIDE_STEPS}
+        onClose={guide.dismiss}
+        onComplete={guide.finish}
+      />
     </View>
   );
 }
@@ -286,6 +303,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
     marginBottom: 3,
+  },
+  headlineActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   headline: {
     color: '#fff',

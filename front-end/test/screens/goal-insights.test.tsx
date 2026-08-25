@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { render, screen, waitFor, within } from '@testing-library/react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { TestSafeAreaProvider } from '@/test/setup/test-safe-area';
 import { TestQueryProvider } from '@/test/setup/test-query-client';
@@ -32,6 +32,7 @@ const statsFixture = {
   heatmap: [
     { weekStart: '2026-07-06', count: 2 },
     { weekStart: '2026-07-13', count: 3 },
+    { weekStart: '2026-07-20', count: 5 },
   ],
   firstCompletionDate: '2026-07-06',
 };
@@ -60,9 +61,15 @@ describe('Goal insights screen', () => {
     await waitFor(() => {
       expect(screen.getByText('Squats')).toBeTruthy();
       expect(screen.getByText('2/3 this week')).toBeTruthy();
-      expect(screen.getByText('Over the last 8 weeks')).toBeTruthy();
+      const performanceText = screen.getByText('Performance');
+      expect(
+        within(performanceText.parent).getByText('Over the last 3 weeks'),
+      ).toBeTruthy();
       expect(screen.getByText('50%')).toBeTruthy();
-      expect(screen.getByText('Over the last 6 months')).toBeTruthy();
+      const cadenceText = screen.getByText('Cadence');
+      expect(
+        within(cadenceText.parent).getByText('Over the last 3 weeks'),
+      ).toBeTruthy();
     });
   });
 
