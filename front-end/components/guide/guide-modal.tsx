@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Dimensions, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
+  type SharedValue,
   Easing,
   Extrapolation,
   interpolate,
@@ -10,7 +11,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import Button from '@/components/base/button';
 import Background from '@/components/backgrounds/background';
@@ -56,7 +56,12 @@ export default function GuideModal({
   onComplete,
 }: GuideModalProps) {
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+    >
       <SafeAreaView edges={['top', 'bottom']} style={styles.backdrop}>
         <Pressable
           onPress={onClose}
@@ -89,6 +94,13 @@ interface GuideModalBodyProps {
  * The reusable, animated guide panels — steps slide in/out and the pagination
  * dot glides. Split out of the `Modal` shell so it renders under jest and can
  * be reused inside any modal/presenter the host prefers.
+ *
+ * Every step is mounted once, at the same origin. A single shared value
+ * (`page`) drives each step's opacity + horizontal offset, so navigating only
+ * animates that value — no step is mounted or re-homed mid-transition, which
+ * is what eliminates the incoming step briefly flashing at its resting
+ * position (an Android-only Reanimated mount/attach race in the old
+ * outgoing/active keyed-branch design).
  */
 export function GuideModalBody({
   steps,
@@ -97,128 +109,46 @@ export function GuideModalBody({
   onComplete,
 }: GuideModalBodyProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [outgoingIndex, setOutgoingIndex] = useState<number | null>(null);
-  const [direction, setDirection] = useState<1 | -1>(1);
 
-  // Shared animation values — drive the step slide and the pagination dot.
-  const contentProgress = useSharedValue(0);
+  // Single source of truth for the step transition. `page === 0` shows
+  // step 0, `page === 1` shows step 1, etc.; fractional values are the mid
+  // transition between two adjacent steps.
+  const page = useSharedValue(0);
   const pillX = useSharedValue(0);
 
   // Reset to the first step each time the guide is (re)opened — keyed on the
-  // `visible` flag, never escape the shared values (they are stable in
-  // production but recreated by jest mocks, which would cascade resets).
+  // `visible` flag. Shared values stay live across reopens.
   useEffect(() => {
     if (!visible) return;
     setActiveIndex(0);
-    setOutgoingIndex(null);
-    setDirection(1);
   }, [visible]);
 
   // Mirror the reset into the animation values (deps listed so `react-hooks`
   // is satisfied; the shared objects keep a stable identity in production).
   useEffect(() => {
     if (!visible) return;
-    contentProgress.value = 0;
+    page.value = 0;
     pillX.value = 0;
-  }, [visible, contentProgress, pillX]);
+  }, [visible, page, pillX]);
 
-  function finishTransition() {
-    setOutgoingIndex(null);
-  }
-
-  // Kick off the step slide + dot glide only after the new outgoing/active
-  // step views have committed, so those views are attached at progress 0 and
-  // the transition starts from its true resting state. Starting the animation
-  // in the handler would let the shared value advance on the UI thread before
-  // React installs the new step subtree — that gap is what flashes the
-  // incoming step mid-flight before the transition begins.
-  useEffect(() => {
-    if (outgoingIndex === null) return;
-
-    // The pagination dot glides across while the step content slides.
-    pillX.value = withSpring(
-      activeIndex * DOT_STEP + activeIndex * (DOT_MARGIN / 2),
-      {
-        duration: SLIDE_DURATION,
-      },
-    );
-
-    // Slide current content out while the next step enters, then commit.
-    // The completion callback runs on the UI thread once the slide finishes.
-    contentProgress.value = withTiming(
-      1,
-      { duration: SLIDE_DURATION, easing: Easing.inOut(Easing.cubic) },
-      (finished) => {
-        if (finished) {
-          scheduleOnRN(finishTransition);
-        }
-      },
-    );
-  }, [outgoingIndex, activeIndex, contentProgress, pillX]);
-
+  // Animate to `nextIndex`. Because `page` is the single source of truth for
+  // every step's position/opacity, retargeting mid-flight (rapid taps) is
+  // smooth and never leaves the guide in an inconsistent state.
   function goTo(nextIndex: number) {
     if (nextIndex === activeIndex) return;
     if (nextIndex < 0 || nextIndex >= steps.length) return;
 
-    const nextDirection: 1 | -1 = nextIndex > activeIndex ? 1 : -1;
-    setDirection(nextDirection);
-    setOutgoingIndex(activeIndex);
     setActiveIndex(nextIndex);
-
-    // Snap both shared values to their resting frame synchronously, so when
-    // React commits the new outgoing/active views they attach at the very
-    // start of the transition (incoming step hidden, outgoing step visible)
-    // and only then does the effect above begin the slide.
-    contentProgress.value = 0;
+    page.value = withTiming(nextIndex, {
+      duration: SLIDE_DURATION,
+      easing: Easing.inOut(Easing.cubic),
+    });
+    pillX.value = withSpring(
+      nextIndex * DOT_STEP + nextIndex * (DOT_MARGIN / 2),
+      { duration: SLIDE_DURATION },
+    );
   }
 
-  const activeStyle = useAnimatedStyle(() => {
-    if (outgoingIndex === null) return {};
-    const enterX = direction === 1 ? SLIDE : -SLIDE;
-    return {
-      opacity: interpolate(
-        contentProgress.value,
-        [0, 1],
-        [0, 1],
-        Extrapolation.CLAMP,
-      ),
-      transform: [
-        {
-          translateX: interpolate(
-            contentProgress.value,
-            [0, 1],
-            [enterX, 0],
-            Extrapolation.CLAMP,
-          ),
-        },
-      ],
-    };
-  });
-
-  const outgoingStyle = useAnimatedStyle(() => {
-    if (outgoingIndex === null) return {};
-    const exitX = direction === 1 ? -SLIDE : SLIDE;
-    return {
-      opacity: interpolate(
-        contentProgress.value,
-        [0, 1],
-        [1, 0],
-        Extrapolation.CLAMP,
-      ),
-      transform: [
-        {
-          translateX: interpolate(
-            contentProgress.value,
-            [0, 1],
-            [0, exitX],
-            Extrapolation.CLAMP,
-          ),
-        },
-      ],
-    };
-  });
-
-  const step = steps[activeIndex];
   const isFirst = activeIndex === 0;
   const isLast = activeIndex === steps.length - 1;
 
@@ -245,28 +175,16 @@ export function GuideModalBody({
         </Pressable>
       </View>
 
-      <View style={styles.content} accessibilityLiveRegion="polite">
-        {outgoingIndex !== null && (
-          <Animated.View
-            key={`outgoing-${outgoingIndex}`}
-            style={[StyleSheet.absoluteFill, outgoingStyle]}
-            pointerEvents="none"
-            accessibilityElementsHidden
-          >
-            <StepView step={steps[outgoingIndex]} />
-          </Animated.View>
-        )}
-
-        {/* Keyed per step so the view *attaches* (opacity 0 at the start of
-            the slide) instead of being reconciled in place mid-transition.
-            Reconciling in place would leave the old step's fully-visible
-            snapshot on this node for one frame — the source of the flash. */}
-        <Animated.View
-          key={`active-${activeIndex}`}
-          style={[StyleSheet.absoluteFill, activeStyle]}
-        >
-          <StepView step={step} />
-        </Animated.View>
+      <View style={styles.content}>
+        {steps.map((step, index) => (
+          <StepFrame
+            key={index}
+            step={step}
+            index={index}
+            page={page}
+            active={index === activeIndex}
+          />
+        ))}
       </View>
 
       <View style={styles.paginationRow}>
@@ -322,6 +240,45 @@ export function GuideModalBody({
         </View>
       </View>
     </>
+  );
+}
+
+interface StepFrameProps {
+  step: GuideStep;
+  index: number;
+  page: SharedValue<number>;
+  active: boolean;
+}
+
+/**
+ * One always-mounted step layer. It stays pinned to the content origin and
+ * derives its opacity + slide purely from `page`, so it never needs to be
+ * mounted (or re-homed) when the active step changes.
+ *
+ * - `index - page === 0`  -> this step is centred (fully visible at rest).
+ * - `index - page  > 0`   -> this step is upcoming: positioned +SLIDE to the
+ *   right and fading in as it approaches.
+ * - `index - page  < 0`   -> this step is behind: sliding to -SLIDE and
+ *   fading out as it leaves.
+ */
+function StepFrame({ step, index, page, active }: StepFrameProps) {
+  const animatedStyle = useAnimatedStyle(() => {
+    const rel = index - page.value;
+    return {
+      opacity: interpolate(rel, [-1, 0, 1], [0, 1, 0], Extrapolation.CLAMP),
+      transform: [{ translateX: rel * SLIDE }],
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[StyleSheet.absoluteFill, animatedStyle]}
+      pointerEvents={active ? 'auto' : 'none'}
+      accessibilityElementsHidden={!active}
+      accessibilityLiveRegion={active ? 'polite' : 'none'}
+    >
+      <StepView step={step} />
+    </Animated.View>
   );
 }
 
