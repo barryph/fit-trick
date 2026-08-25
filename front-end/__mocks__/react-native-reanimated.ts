@@ -32,5 +32,9 @@ module.exports = {
     linear: NOOP,
     ease: NOOP,
     bezier: () => NOOP,
+    cubic: NOOP,
+    inOut: () => NOOP,
+    in: () => NOOP,
+    out: () => NOOP,
   },
 };
