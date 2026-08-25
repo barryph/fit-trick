@@ -63,7 +63,7 @@ describe('Home screen', () => {
     await renderHome();
 
     await waitFor(() => {
-      expect(screen.getByText('Activities Queue')).toBeTruthy();
+      expect(screen.getByText('Activities Center')).toBeTruthy();
       expect(screen.getByText('Morning Run')).toBeTruthy();
       expect(screen.getByText('Weekly Review')).toBeTruthy();
     });
@@ -150,6 +150,6 @@ describe('Home screen', () => {
 
     await renderHome();
 
-    expect(screen.queryByText('Activities Queue')).toBeNull();
+    expect(screen.queryByText('Activities Center')).toBeNull();
   });
 });
