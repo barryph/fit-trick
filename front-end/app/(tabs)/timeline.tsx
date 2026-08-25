@@ -45,7 +45,7 @@ const LEFT_COLUMN_WIDTH = 60; // To allow the ticker text to show
 // const headersBackground = '#1a4163';
 const headersBackground = 'rgba(26, 65, 99, 0.30)';
 // Subtle vertical line drawn at the start of each new week (Monday column)
-const weekDividerColor = 'rgba(255, 255, 255, 0.20)';
+const weekDividerColor = 'rgba(255, 255, 255, 0.10)';
 
 type TimelineDateColumn = {
   full: string;
