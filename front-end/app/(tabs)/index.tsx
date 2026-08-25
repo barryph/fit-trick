@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
@@ -28,6 +28,13 @@ import { useGuide } from '@/hooks/use-guide';
 import GuideModal from '@/components/guide/guide-modal';
 import GuideInfoButton from '@/components/guide/guide-info-button';
 import { HOME_GUIDE_STEPS } from './home-guide-steps';
+import {
+  logOnboardingComplete,
+  logOnboardingSkip,
+  logOnboardingStart,
+  logOnboardingStepComplete,
+  logOnboardingStepView,
+} from '@/lib/analytics/analytics';
 
 function sortActivities(acts: IActivityClient[] = []) {
   return [...acts].sort((a, b) => {
@@ -107,6 +114,43 @@ function DashboardContent({ userId }: { userId: string }) {
 
   // Home onboarding guide — auto-shows on first visit; the info (i) icon reopens it.
   const guide = useGuide({ pageId: 'home' });
+
+  // --- Onboarding funnel analytics -------------------------------------------
+  // The guide IS onboarding. We measure: start, per-step view, per-step
+  // completion, completion, and skip (dismissal without finishing).
+  const stepCount = HOME_GUIDE_STEPS.length;
+  const stepNames = HOME_GUIDE_STEPS.map((s) => s.title);
+  // Index of the step currently (or last) being viewed, so we can derive
+  // "step complete" whenever the user moves forward.
+  const viewedStepRef = useRef(0);
+
+  // Guide opened → funnel starts on the first step.
+  useEffect(() => {
+    if (!guide.isOpen) return;
+    viewedStepRef.current = 0;
+    logOnboardingStart('home');
+    logOnboardingStepView(0, stepNames[0] ?? '', stepCount);
+  }, [guide.isOpen, stepCount, stepNames]);
+
+  function handleOnboardingStepChange(index: number) {
+    if (index > viewedStepRef.current) {
+      // Moving forward: the previously-viewed step was completed.
+      logOnboardingStepComplete(viewedStepRef.current, stepCount);
+    }
+    viewedStepRef.current = index;
+    logOnboardingStepView(index, stepNames[index] ?? '', stepCount);
+  }
+
+  function handleOnboardingDismiss() {
+    // Dismissal = skip (abandoned before finishing the funnel).
+    logOnboardingSkip(viewedStepRef.current, stepCount);
+    guide.dismiss();
+  }
+
+  function handleOnboardingComplete() {
+    logOnboardingComplete(stepCount);
+    guide.finish();
+  }
 
   const today = YYYYMMDD();
 
@@ -279,8 +323,9 @@ function DashboardContent({ userId }: { userId: string }) {
       <GuideModal
         visible={guide.isOpen}
         steps={HOME_GUIDE_STEPS}
-        onClose={guide.dismiss}
-        onComplete={guide.finish}
+        onClose={handleOnboardingDismiss}
+        onComplete={handleOnboardingComplete}
+        onStepChange={handleOnboardingStepChange}
       />
     </View>
   );

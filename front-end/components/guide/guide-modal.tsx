@@ -43,6 +43,12 @@ interface GuideModalProps {
   steps: GuideStep[];
   onClose: () => void;
   onComplete?: () => void;
+  /**
+   * Called with the newly active step index (0-based) whenever the active
+   * step changes, including on open (index 0). Used by hosts to fire
+   * onboarding-funnel analytics.
+   */
+  onStepChange?: (index: number) => void;
 }
 
 /**
@@ -54,6 +60,7 @@ export default function GuideModal({
   steps,
   onClose,
   onComplete,
+  onStepChange,
 }: GuideModalProps) {
   return (
     <Modal
@@ -75,6 +82,7 @@ export default function GuideModal({
             visible={visible}
             onClose={onClose}
             onComplete={onComplete}
+            onStepChange={onStepChange}
           />
         </View>
       </SafeAreaView>
@@ -88,6 +96,8 @@ interface GuideModalBodyProps {
   visible?: boolean;
   onClose: () => void;
   onComplete?: () => void;
+  /** See {@link GuideModalProps.onStepChange}. */
+  onStepChange?: (index: number) => void;
 }
 
 /**
@@ -107,6 +117,7 @@ export function GuideModalBody({
   visible = true,
   onClose,
   onComplete,
+  onStepChange,
 }: GuideModalBodyProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -121,7 +132,8 @@ export function GuideModalBody({
   useEffect(() => {
     if (!visible) return;
     setActiveIndex(0);
-  }, [visible]);
+    onStepChange?.(0);
+  }, [visible, onStepChange]);
 
   // Mirror the reset into the animation values (deps listed so `react-hooks`
   // is satisfied; the shared objects keep a stable identity in production).
@@ -139,6 +151,7 @@ export function GuideModalBody({
     if (nextIndex < 0 || nextIndex >= steps.length) return;
 
     setActiveIndex(nextIndex);
+    onStepChange?.(nextIndex);
     page.value = withTiming(nextIndex, {
       duration: SLIDE_DURATION,
       easing: Easing.inOut(Easing.cubic),

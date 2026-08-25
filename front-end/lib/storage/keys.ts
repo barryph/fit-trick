@@ -10,4 +10,9 @@ export const storageKeys = {
    * independent auto-show state.
    */
   guideCompleted: (pageId: string) => `guide-completed:v1:${pageId}`,
+  /**
+   * Tracks that a user has completed at least one activity (for the
+   * `first_activity_completed` analytics event).
+   */
+  userCompletedActivity: (userId: string) => `user-completed:v1:${userId}`,
 } as const;

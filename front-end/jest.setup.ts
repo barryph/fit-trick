@@ -6,6 +6,29 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
+/**
+ * React Native Firebase native modules aren't available under jest. Mock them
+ * as no-op modular factories so importing the analytics/crashlytics wrappers
+ * (or any component that imports them) doesn't throw. All methods resolve.
+ */
+jest.mock('@react-native-firebase/app', () => ({}));
+jest.mock('@react-native-firebase/analytics', () => ({
+  getAnalytics: jest.fn(() => ({})),
+  logEvent: jest.fn(),
+  logScreenView: jest.fn(() => Promise.resolve()),
+  logSignUp: jest.fn(() => Promise.resolve()),
+  logLogin: jest.fn(() => Promise.resolve()),
+  setUserId: jest.fn(() => Promise.resolve()),
+}));
+jest.mock('@react-native-firebase/crashlytics', () => ({
+  getCrashlytics: jest.fn(() => ({})),
+  recordError: jest.fn(),
+  log: jest.fn(),
+  setUserId: jest.fn(() => Promise.resolve(null)),
+  setAttribute: jest.fn(() => Promise.resolve(null)),
+  setCrashlyticsCollectionEnabled: jest.fn(() => Promise.resolve(null)),
+}));
+
 jest.mock('@react-native-community/netinfo', () => ({
   addEventListener: jest.fn(() => jest.fn()),
   fetch: jest.fn(() => Promise.resolve({ isConnected: true })),

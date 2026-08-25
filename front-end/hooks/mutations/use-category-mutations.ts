@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoriesAPI, type ICategory } from '@/api/api.categories';
 import { queryKeys } from '@/lib/query/keys';
 import { unwrapApiResponse } from '@/lib/query/unwrap';
+import { logCreateCategory } from '@/lib/analytics/analytics';
 
 function updateCategoriesCache(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -28,6 +29,7 @@ export function useCreateCategoryMutation() {
         ...categories,
         category,
       ]);
+      logCreateCategory();
     },
   });
 }

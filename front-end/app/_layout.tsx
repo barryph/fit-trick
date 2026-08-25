@@ -26,6 +26,11 @@ import Background from '@/components/backgrounds/background';
 import { ThemedText } from '@/components/base/themed-text';
 import { Colors } from '@/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import Constants from 'expo-constants';
+import {
+  setCrashlyticsCollectionEnabled,
+  setCrashlyticsCustomKey,
+} from '@/lib/crashlytics/crashlytics';
 
 // This prevents SplashScreen from auto hiding while the fonts are in loading state
 SplashScreen.preventAutoHideAsync();
@@ -62,6 +67,23 @@ function FontsProvider({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
+  /**
+   * Initialise Crashlytics once at startup. Collection is enabled for
+   * preview/production builds only, so local dev-client crashes don't pollute
+   * real production data. (RNFirebase auto-installs the global JS error and
+   * unhandled-rejection handlers — no custom handler needed.) A custom key
+   * gives debugging context on every report.
+   */
+  useEffect(() => {
+    const variant: string =
+      (Constants.expoConfig?.extra as { appVariant?: string } | undefined)
+        ?.appVariant ?? 'production';
+    const crashlyticsEnabled = variant !== 'development';
+
+    setCrashlyticsCollectionEnabled(crashlyticsEnabled);
+    setCrashlyticsCustomKey('app_variant', variant);
+  }, []);
 
   const toastConfig = {
     // success: (props) => <BaseToast {...props} style={{ background: 'red' }} />,

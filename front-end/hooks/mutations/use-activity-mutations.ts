@@ -8,6 +8,17 @@ import { queryKeys } from '@/lib/query/keys';
 import { patchTimelineSet } from '@/lib/query/timeline-utils';
 import { unwrapApiResponse } from '@/lib/query/unwrap';
 import { YYYYMMDD } from '@/utils/date';
+import {
+  logCreateActivity,
+  logDeleteActivity,
+  logEditActivity,
+  logActivityCompleted,
+  logFirstActivityCompleted,
+} from '@/lib/analytics/analytics';
+import {
+  hasUserCompletedEver,
+  markUserCompletedEver,
+} from '@/lib/storage/completion-state';
 
 function updateActivitiesListCache(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -16,6 +27,19 @@ function updateActivitiesListCache(
   queryClient.setQueryData<IActivity[]>(queryKeys.activities.all, (current) =>
     current ? updater(current) : current,
   );
+}
+
+/**
+ * Fire `activity_completed` on every completion, and `first_activity_completed`
+ * exactly once per user (persisted in AsyncStorage). Best-effort — analytics
+ * failures must never affect the completion flow.
+ */
+function reportActivityCompletion(userId: string): void {
+  logActivityCompleted();
+  void hasUserCompletedEver(userId).then((completedEver) => {
+    if (completedEver) return;
+    void markUserCompletedEver(userId).then(() => logFirstActivityCompleted());
+  });
 }
 
 function setActivityInCaches(
@@ -70,6 +94,7 @@ export function useCreateActivityMutation() {
         queryKeys.activities.detail(activity.id),
         activity,
       );
+      logCreateActivity(Boolean(activity.goal));
       void invalidateTimeline(queryClient);
       invalidateGoals(queryClient);
     },
@@ -97,6 +122,7 @@ export function useEditActivityMutation() {
     },
     onSuccess: (activity) => {
       setActivityInCaches(queryClient, activity);
+      logEditActivity();
       void invalidateTimeline(queryClient);
       invalidateGoals(queryClient);
     },
@@ -114,6 +140,7 @@ export function useDeleteActivityMutation() {
     },
     onSuccess: (activityId) => {
       removeActivityFromCaches(queryClient, activityId);
+      logDeleteActivity();
       void invalidateTimeline(queryClient);
       invalidateGoals(queryClient);
     },
@@ -145,6 +172,7 @@ export function useCompleteActivityMutation() {
             : current,
       );
       invalidateGoals(queryClient);
+      void reportActivityCompletion(activity.userId);
     },
   });
 }
