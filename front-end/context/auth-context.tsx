@@ -22,6 +22,13 @@ import { signInWithApple as appleSignInClient } from '@/lib/auth/apple';
 import { isSocialAuthError } from '@/lib/auth/errors';
 import { removeItem } from '@/lib/storage/client';
 import { storageKeys } from '@/lib/storage/keys';
+import {
+  logLogin,
+  logLoginFailed,
+  logSignUp,
+  logSignUpFailed,
+} from '@/lib/analytics/analytics';
+import type { AuthMethod } from '@/lib/analytics/events';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -87,9 +94,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const response = await authAPI.login({ email, password });
     if (response.error) {
       console.error('Error logging in', response.error);
+      logLoginFailed('password', response.error.code);
     } else {
       setUser(response.data.user);
       setIsAuthenticated(true);
+      logLogin('password');
     }
     return response;
   }
@@ -185,9 +194,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
     if (response.error) {
       console.error('Error registering:', response.error);
+      logSignUpFailed('password', response.error.code);
     } else {
       setUser(response.data.user);
       setIsAuthenticated(true);
+      logSignUp('password');
     }
     return response;
   }
@@ -209,6 +220,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       nonce?: string,
       authorizationCode?: string,
     ) => Promise<ApiResponse<LoginResponse>>,
+    method: AuthMethod,
   ): Promise<ApiResponse<LoginResponse>> {
     if (socialAuthInFlight.current) {
       console.error('Error: Social Auth In Flight');
@@ -248,11 +260,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (response.error) {
         console.error('Error signing in with provider', response.error);
+        logLoginFailed(method, response.error.code);
         return response;
       }
 
       setUser(response.data.user);
       setIsAuthenticated(true);
+      logLogin(method);
       return response;
     } finally {
       socialAuthInFlight.current = false;
@@ -291,6 +305,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return performSocialSignIn(
       async () => googleSignInClient(),
       (idToken) => authAPI.googleLogin({ idToken }),
+      'google',
     );
   }
 
@@ -303,6 +318,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           nonce: nonce ?? '',
           authorizationCode: authorizationCode ?? '',
         }),
+      'apple',
     );
   }
 

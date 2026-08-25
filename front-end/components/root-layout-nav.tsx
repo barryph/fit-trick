@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useAuth } from '@/context/auth-context';
+import { useScreenTracking } from '@/lib/analytics/use-screen-tracking';
+import { useAnalyticsIdentity } from '@/lib/analytics/use-analytics-identity';
 
 /**
  * Root navigation stack + session gate.
@@ -11,6 +13,11 @@ export function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
+
+  // Analytics: log screen views on route changes and keep the user id in
+  // sync with the authenticated session (opaque id only, never an email).
+  useScreenTracking();
+  useAnalyticsIdentity();
 
   const inAuthGroup =
     segments[0] === 'login' ||

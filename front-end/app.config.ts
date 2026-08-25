@@ -32,6 +32,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   const googleIosUrlScheme = process.env.GOOGLE_IOS_URL_SCHEME;
 
+  // Firebase config files are picked per variant so each environment uses its
+  // own Firebase project apps (dev / preview / production). These files are
+  // committed to the repo (see firebase/README) and are NOT secrets — they
+  // embed no server credentials. Keep the naming in sync with the files under
+  // /firebase/{ios,android}.
+  const iosGoogleServiceFileMap: Record<string, string> = {
+    development: './firebase/ios/GoogleService-Info-dev.plist',
+    preview: './firebase/ios/GoogleService-Info-preview.plist',
+    production: './firebase/ios/GoogleService-Info.plist',
+  };
+  const androidGoogleServicesFileMap: Record<string, string> = {
+    development: './firebase/android/google-services-dev.json',
+    preview: './firebase/android/google-services-preview.json',
+    production: './firebase/android/google-services.json',
+  };
+
   const plugins: ExpoConfig['plugins'] = [
     ...(config.plugins ?? []),
     'expo-apple-authentication',
@@ -46,6 +62,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           ],
         ] as [string, { iosUrlScheme: string }][])
       : []),
+    // React Native Firebase (see /firebase/README for setup).
+    '@react-native-firebase/app',
+    ['@react-native-firebase/analytics', {}],
+    ['@react-native-firebase/crashlytics', {}],
   ];
 
   return {
@@ -53,15 +73,24 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: nameMap[variant],
     slug: config.slug!,
     plugins,
+    extra: {
+      ...config.extra,
+      // Runtime build variant so the app can gate analytics/crashlytics
+      // behaviour (e.g. disable Crashlytics collection on dev builds).
+      appVariant: variant,
+    },
     ios: {
       ...config.ios,
       // icon: appIcon[variant],
       bundleIdentifier: uniqueIdMap[variant],
+      googleServicesFile: iosGoogleServiceFileMap[variant],
     },
     android: {
       ...config.android,
       // icon: appIcon[variant],
       package: uniqueIdMap[variant],
+
+      googleServicesFile: androidGoogleServicesFileMap[variant],
     },
   };
 };

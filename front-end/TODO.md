@@ -6,3 +6,8 @@
 - Add filter options and date selectors to charts
 - Make goals configurable beyond weeks. Support months, years, x days, x months etc.
 - Make goals adjustable. How should changed goals affect historical adherence? Changing a goal starts a new goal period.
+
+
+iOS
+- Apple Signin
+- Configure firebase google-services.json ios files
