@@ -18,6 +18,13 @@ afterEach(async () => {
 
 jest.mock('react-native-reanimated');
 
+// `scheduleOnRN` bridges a UI-thread callback back to the JS thread in
+// production; under jest it is a no-op scheduling primitive with no native
+// worklet runtime to back it.
+jest.mock('react-native-worklets', () => ({
+  scheduleOnRN: jest.fn(),
+}));
+
 /**
  * @gorhom/bottom-sheet relies on native gesture/reanimated worklets that are
  * not available under jest. Render a lightweight stand-in: the provider is a

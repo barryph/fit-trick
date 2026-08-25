@@ -126,6 +126,36 @@ export function GuideModalBody({
     setOutgoingIndex(null);
   }
 
+  // Kick off the step slide + dot glide only after the new outgoing/active
+  // step views have committed, so those views are attached at progress 0 and
+  // the transition starts from its true resting state. Starting the animation
+  // in the handler would let the shared value advance on the UI thread before
+  // React installs the new step subtree — that gap is what flashes the
+  // incoming step mid-flight before the transition begins.
+  useEffect(() => {
+    if (outgoingIndex === null) return;
+
+    // The pagination dot glides across while the step content slides.
+    pillX.value = withSpring(
+      activeIndex * DOT_STEP + activeIndex * (DOT_MARGIN / 2),
+      {
+        duration: SLIDE_DURATION,
+      },
+    );
+
+    // Slide current content out while the next step enters, then commit.
+    // The completion callback runs on the UI thread once the slide finishes.
+    contentProgress.value = withTiming(
+      1,
+      { duration: SLIDE_DURATION, easing: Easing.inOut(Easing.cubic) },
+      (finished) => {
+        if (finished) {
+          scheduleOnRN(finishTransition);
+        }
+      },
+    );
+  }, [outgoingIndex, activeIndex, contentProgress, pillX]);
+
   function goTo(nextIndex: number) {
     if (nextIndex === activeIndex) return;
     if (nextIndex < 0 || nextIndex >= steps.length) return;
@@ -135,28 +165,11 @@ export function GuideModalBody({
     setOutgoingIndex(activeIndex);
     setActiveIndex(nextIndex);
 
-    // The pagination dot glides across while the step content slides.
-    pillX.value = withSpring(
-      nextIndex * DOT_STEP + nextIndex * (DOT_MARGIN / 2),
-      {
-        duration: SLIDE_DURATION,
-      },
-    );
-
+    // Snap both shared values to their resting frame synchronously, so when
+    // React commits the new outgoing/active views they attach at the very
+    // start of the transition (incoming step hidden, outgoing step visible)
+    // and only then does the effect above begin the slide.
     contentProgress.value = 0;
-
-    // Slide current content out while the next step enters, then commit.
-    // The completion callback runs on the UI thread once the slide finishes.
-    contentProgress.value = withTiming(
-      1,
-      { duration: SLIDE_DURATION, easing: Easing.inOut(Easing.cubic) },
-      (finished) => {
-        if (finished) {
-          // scheduleOnRN(finishTransition);
-          scheduleOnRN(finishTransition);
-        }
-      },
-    );
   }
 
   const activeStyle = useAnimatedStyle(() => {
@@ -235,6 +248,7 @@ export function GuideModalBody({
       <View style={styles.content} accessibilityLiveRegion="polite">
         {outgoingIndex !== null && (
           <Animated.View
+            key={`outgoing-${outgoingIndex}`}
             style={[StyleSheet.absoluteFill, outgoingStyle]}
             pointerEvents="none"
             accessibilityElementsHidden
@@ -243,7 +257,14 @@ export function GuideModalBody({
           </Animated.View>
         )}
 
-        <Animated.View style={[StyleSheet.absoluteFill, activeStyle]}>
+        {/* Keyed per step so the view *attaches* (opacity 0 at the start of
+            the slide) instead of being reconciled in place mid-transition.
+            Reconciling in place would leave the old step's fully-visible
+            snapshot on this node for one frame — the source of the flash. */}
+        <Animated.View
+          key={`active-${activeIndex}`}
+          style={[StyleSheet.absoluteFill, activeStyle]}
+        >
           <StepView step={step} />
         </Animated.View>
       </View>
