@@ -6,8 +6,6 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import GuideMediaIcon from '@/components/guide/guide-media-icon';
 import type { GuideStep } from '@/components/guide/types';
 
-// TODO: Only begin animation once image is shown
-
 function GuideGif({ source }: { source: ImageSource }) {
   const image = useImage(source);
   // Calculate aspect ratio once dimensions load
