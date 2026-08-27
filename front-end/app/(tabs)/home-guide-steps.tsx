@@ -35,33 +35,9 @@ function GuideGif({ source }: { source: ImageSource }) {
  */
 export const HOME_GUIDE_STEPS: GuideStep[] = [
   {
-    title: 'Queue activitites',
-    description:
-      'Tap an activity to queue it up. Queued activities move to the top.',
-    media: (
-      <GuideGif source={require('../../assets/demos/queue-an-activity.gif')} />
-    ),
-  },
-  {
-    title: 'Swipe to complete',
-    description:
-      "Once you've completed and activity, swipe right to mark it off for the day.",
-    media: (
-      <GuideGif source={require('../../assets/demos/complete-activity.gif')} />
-    ),
-  },
-  {
-    title: 'Log past workouts',
-    description:
-      'Previous days can be logged from the timeline. Tap a cell to toggle it.',
-    media: (
-      <GuideGif source={require('../../assets/demos/timeline-toggle.gif')} />
-    ),
-  },
-  {
     title: 'Welcome to Kadence',
     description:
-      'A small daily rhythm keeps momentum once a week becomes a habit — and everything lands here.',
+      'A rhythm keeps momentum, consistency becomes a habit. Here begins your cadence.',
     media: (
       <GuideMediaIcon
         accent="#087cff"
@@ -73,7 +49,7 @@ export const HOME_GUIDE_STEPS: GuideStep[] = [
   {
     title: 'Add your first activity',
     description:
-      'Tap the + button to create an activity. Pick a name, category and how often you want to do it.',
+      "Tap the 'Add Activity' button to create an activity. Pick a name, category and how often you want to do it.",
     media: (
       <GuideMediaIcon
         accent="#087cff"
@@ -83,27 +59,50 @@ export const HOME_GUIDE_STEPS: GuideStep[] = [
     ),
   },
   {
-    title: 'Work the list',
+    title: 'Queue activitites',
     description:
-      'Tap an activity to queue it, swipe left to edit it, and swipe right to mark it done.',
+      'Tap an activity to queue it. Queued activities move to the top.',
     media: (
-      <GuideMediaIcon
-        accent="#00c2a8"
-        label="Swipe to complete"
-        icon={<Ionicons name="checkmark-circle" size={26} color="#52f2a8" />}
-      />
+      <GuideGif source={require('../../assets/demos/queue-an-activity.gif')} />
     ),
   },
   {
-    title: 'Watch the timeline fill',
-    description:
-      'Your completed days build up on the Timeline — each colored cell is a step closer to a streak.',
+    title: 'Work the list',
+    description: 'Swipe left to edit it, swipe right to mark it done.',
     media: (
-      <GuideMediaIcon
-        accent="#38d8ff"
-        label="Your timeline"
-        icon={<FontAwesome6 name="bars-staggered" size={24} color="#d8ecff" />}
-      />
+      <GuideGif source={require('../../assets/demos/activity-swipes.gif')} />
     ),
   },
+  {
+    title: 'Log past workouts',
+    description:
+      'Previous days can be logged from the timeline. Tap a cell to toggle it.',
+    media: (
+      <GuideGif source={require('../../assets/demos/timeline-toggle.gif')} />
+    ),
+  },
+  // {
+  //   title: 'Work the list',
+  //   description:
+  //     'Tap an activity to queue it, swipe left to edit it, and swipe right to mark it done.',
+  //   media: (
+  //     <GuideMediaIcon
+  //       accent="#00c2a8"
+  //       label="Swipe to complete"
+  //       icon={<Ionicons name="checkmark-circle" size={26} color="#52f2a8" />}
+  //     />
+  //   ),
+  // },
+  // {
+  //   title: 'Watch the timeline fill',
+  //   description:
+  //     'Your completed days build up on the Timeline — each colored cell is a step closer to a streak.',
+  //   media: (
+  //     <GuideMediaIcon
+  //       accent="#38d8ff"
+  //       label="Your timeline"
+  //       icon={<FontAwesome6 name="bars-staggered" size={24} color="#d8ecff" />}
+  //     />
+  //   ),
+  // },
 ];
