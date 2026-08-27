@@ -1,8 +1,11 @@
+import { Image } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 import GuideMediaIcon from '@/components/guide/guide-media-icon';
 import type { GuideStep } from '@/components/guide/types';
+
+// TODO: Use expo-image for gif support outside of dev
 
 /**
  * The Steps for the Home screen onboarding guide.
@@ -11,6 +14,87 @@ import type { GuideStep } from '@/components/guide/types';
  * add a step, or remove one — the modal reads this array as-is.
  */
 export const HOME_GUIDE_STEPS: GuideStep[] = [
+  {
+    title: 'Queue activitites',
+    description:
+      'Tap an activity to queue it up. Queued activities move to the top.',
+    // media: (
+    //   <GuideMediaIcon
+    //     accent="#087cff"
+    //     label="Your dashboard"
+    //     icon={<Ionicons name="apps" size={26} color="#d8ecff" />}
+    //   />
+    // ),
+    // TODO: Fix sizing to be dynamic
+    demo: (
+      <Image
+        source={require('../../assets/demos/queue-an-activity.gif')}
+        style={{
+          height: 110,
+          width: '100%',
+          marginTop: 8,
+          marginBottom: 0,
+          borderWidth: 1,
+          borderColor: '#087cff1a',
+          borderRadius: 10,
+        }}
+      />
+    ),
+  },
+  {
+    title: 'Swipe to complete',
+    description:
+      "Once you've completed and activity, swipe right to mark it off for the day.",
+    // media: (
+    //   <GuideMediaIcon
+    //     accent="#087cff"
+    //     label="Your dashboard"
+    //     icon={<Ionicons name="apps" size={26} color="#d8ecff" />}
+    //   />
+    // ),
+    // TODO: Fix sizing to be dynamic
+    demo: (
+      <Image
+        source={require('../../assets/demos/complete-activity.gif')}
+        style={{
+          height: 65,
+          width: '100%',
+          marginTop: 8,
+          marginBottom: 0,
+          borderWidth: 1,
+          borderColor: '#087cff1a',
+          borderRadius: 10,
+        }}
+      />
+    ),
+  },
+  {
+    title: 'Log past workouts',
+    description:
+      'Previous days can be logged from the timeline. Tap a cell to toggle it.',
+    // media: (
+    //   <GuideMediaIcon
+    //     accent="#087cff"
+    //     label="Your dashboard"
+    //     icon={<Ionicons name="apps" size={26} color="#d8ecff" />}
+    //   />
+    // ),
+    // TODO: Fix sizing to be dynamic
+    demo: (
+      <Image
+        source={require('../../assets/demos/timeline-toggle.gif')}
+        style={{
+          height: 110,
+          width: '100%',
+          marginTop: 8,
+          marginBottom: 0,
+          borderWidth: 1,
+          borderColor: '#087cff1a',
+          borderRadius: 10,
+        }}
+      />
+    ),
+  },
   {
     title: 'Welcome to Kadence',
     description:

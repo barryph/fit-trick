@@ -302,11 +302,17 @@ function StepView({ step }: { step: GuideStep }) {
       <ThemedText
         type="defaultBold"
         size="medium"
-        style={styles.stepTitle}
+        style={[
+          styles.stepTitle,
+          step.demo && {
+            marginTop: 8,
+          },
+        ]}
         accessibilityRole="header"
       >
         {step.title}
       </ThemedText>
+      {step.demo}
       <ThemedText type="default" style={styles.stepDescription}>
         {step.description}
       </ThemedText>
