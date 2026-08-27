@@ -15,7 +15,6 @@ function GuideGif({ source }: { source: ImageSource }) {
     <Image
       source={image}
       style={{
-        //height: 110,
         width: '100%',
         aspectRatio,
         marginTop: 8,
@@ -39,15 +38,7 @@ export const HOME_GUIDE_STEPS: GuideStep[] = [
     title: 'Queue activitites',
     description:
       'Tap an activity to queue it up. Queued activities move to the top.',
-    // media: (
-    //   <GuideMediaIcon
-    //     accent="#087cff"
-    //     label="Your dashboard"
-    //     icon={<Ionicons name="apps" size={26} color="#d8ecff" />}
-    //   />
-    // ),
-    // TODO: Fix sizing to be dynamic
-    demo: (
+    media: (
       <GuideGif source={require('../../assets/demos/queue-an-activity.gif')} />
     ),
   },
@@ -55,15 +46,7 @@ export const HOME_GUIDE_STEPS: GuideStep[] = [
     title: 'Swipe to complete',
     description:
       "Once you've completed and activity, swipe right to mark it off for the day.",
-    // media: (
-    //   <GuideMediaIcon
-    //     accent="#087cff"
-    //     label="Your dashboard"
-    //     icon={<Ionicons name="apps" size={26} color="#d8ecff" />}
-    //   />
-    // ),
-    // TODO: Fix sizing to be dynamic
-    demo: (
+    media: (
       <GuideGif source={require('../../assets/demos/complete-activity.gif')} />
     ),
   },
@@ -71,15 +54,7 @@ export const HOME_GUIDE_STEPS: GuideStep[] = [
     title: 'Log past workouts',
     description:
       'Previous days can be logged from the timeline. Tap a cell to toggle it.',
-    // media: (
-    //   <GuideMediaIcon
-    //     accent="#087cff"
-    //     label="Your dashboard"
-    //     icon={<Ionicons name="apps" size={26} color="#d8ecff" />}
-    //   />
-    // ),
-    // TODO: Fix sizing to be dynamic
-    demo: (
+    media: (
       <GuideGif source={require('../../assets/demos/timeline-toggle.gif')} />
     ),
   },

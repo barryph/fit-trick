@@ -23,7 +23,7 @@ const SLIDE = 42;
 const SLIDE_DURATION = 300;
 /** Cap the content region so the card never dominates small screens. */
 const CONTENT_HEIGHT = Math.min(
-  Math.max(Dimensions.get('window').height * 0.34, 220),
+  Math.max(Dimensions.get('window').height * 0.3, 220),
   300,
 );
 
@@ -325,17 +325,11 @@ function StepView({ step, mediaKey }: { step: GuideStep; mediaKey: number }) {
       <ThemedText
         type="defaultBold"
         size="medium"
-        style={[
-          styles.stepTitle,
-          step.demo && {
-            marginTop: 8,
-          },
-        ]}
+        style={styles.stepTitle}
         accessibilityRole="header"
       >
         {step.title}
       </ThemedText>
-      <MediaFrame media={step.demo} mediaKey={mediaKey} />
       <ThemedText type="default" style={styles.stepDescription}>
         {step.description}
       </ThemedText>
@@ -349,7 +343,13 @@ function StepView({ step, mediaKey }: { step: GuideStep; mediaKey: number }) {
  * time its step becomes active — without affecting the always-mounted step
  * frames or the outgoing step's transition.
  */
-function MediaFrame({ media, mediaKey }: { media?: ReactNode; mediaKey: number }) {
+function MediaFrame({
+  media,
+  mediaKey,
+}: {
+  media?: ReactNode;
+  mediaKey: number;
+}) {
   if (media == null) return null;
   return <View key={mediaKey}>{media}</View>;
 }
