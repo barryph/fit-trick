@@ -1,11 +1,34 @@
-import { Image } from 'react-native';
+// import { Image } from 'react-native';
+import { Image, ImageSource, useImage } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 import GuideMediaIcon from '@/components/guide/guide-media-icon';
 import type { GuideStep } from '@/components/guide/types';
 
-// TODO: Use expo-image for gif support outside of dev
+// TODO: Only begin animation once image is shown
+
+function GuideGif({ source }: { source: ImageSource }) {
+  const image = useImage(source);
+  // Calculate aspect ratio once dimensions load
+  const aspectRatio = image ? image.width / image.height : 1;
+
+  return (
+    <Image
+      source={image}
+      style={{
+        //height: 110,
+        width: '100%',
+        aspectRatio,
+        marginTop: 8,
+        marginBottom: 0,
+        borderWidth: 1,
+        borderColor: '#087cff1a',
+        borderRadius: 10,
+      }}
+    />
+  );
+}
 
 /**
  * The Steps for the Home screen onboarding guide.
@@ -27,18 +50,7 @@ export const HOME_GUIDE_STEPS: GuideStep[] = [
     // ),
     // TODO: Fix sizing to be dynamic
     demo: (
-      <Image
-        source={require('../../assets/demos/queue-an-activity.gif')}
-        style={{
-          height: 110,
-          width: '100%',
-          marginTop: 8,
-          marginBottom: 0,
-          borderWidth: 1,
-          borderColor: '#087cff1a',
-          borderRadius: 10,
-        }}
-      />
+      <GuideGif source={require('../../assets/demos/queue-an-activity.gif')} />
     ),
   },
   {
@@ -54,18 +66,7 @@ export const HOME_GUIDE_STEPS: GuideStep[] = [
     // ),
     // TODO: Fix sizing to be dynamic
     demo: (
-      <Image
-        source={require('../../assets/demos/complete-activity.gif')}
-        style={{
-          height: 65,
-          width: '100%',
-          marginTop: 8,
-          marginBottom: 0,
-          borderWidth: 1,
-          borderColor: '#087cff1a',
-          borderRadius: 10,
-        }}
-      />
+      <GuideGif source={require('../../assets/demos/complete-activity.gif')} />
     ),
   },
   {
@@ -81,18 +82,7 @@ export const HOME_GUIDE_STEPS: GuideStep[] = [
     // ),
     // TODO: Fix sizing to be dynamic
     demo: (
-      <Image
-        source={require('../../assets/demos/timeline-toggle.gif')}
-        style={{
-          height: 110,
-          width: '100%',
-          marginTop: 8,
-          marginBottom: 0,
-          borderWidth: 1,
-          borderColor: '#087cff1a',
-          borderRadius: 10,
-        }}
-      />
+      <GuideGif source={require('../../assets/demos/timeline-toggle.gif')} />
     ),
   },
   {
