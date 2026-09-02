@@ -1,1 +1,4 @@
 .aider*
+
+# git worktrees
+./worktrees

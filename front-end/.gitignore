@@ -68,3 +68,6 @@ app-example
 *.njsproj
 *.sln
 *.sw?
+
+# git worktrees
+./worktrees
