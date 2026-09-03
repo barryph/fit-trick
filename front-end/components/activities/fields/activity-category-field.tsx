@@ -1,7 +1,11 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Controller, useFormContext } from 'react-hook-form';
-import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  BottomSheetScrollView,
+} from '@gorhom/bottom-sheet';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Label from '@/components/base/label';
 import InputErrorMessage from '@/components/base/input-error-message.tsx';
@@ -19,6 +23,12 @@ export default function ActivityCategoryField({ categories }: Props) {
   const { control } = useFormContext<ActivityFormValues>();
   const sheetRef = useRef<BottomSheetModal>(null);
   const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false);
+
+  // Backdrop allows us to close the modal on outside click
+  const renderBackdrop = useCallback(
+    (props: any) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} />,
+    [],
+  );
 
   return (
     <Controller
@@ -82,6 +92,7 @@ export default function ActivityCategoryField({ categories }: Props) {
               snapPoints={['60%']}
               backgroundStyle={styles.sheetBackground}
               handleIndicatorStyle={styles.sheetHandle}
+              backdropComponent={renderBackdrop}
             >
               <BottomSheetScrollView
                 contentContainerStyle={styles.sheetContent}

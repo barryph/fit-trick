@@ -1,7 +1,11 @@
-import { useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Controller, useFormContext } from 'react-hook-form';
-import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  BottomSheetView,
+} from '@gorhom/bottom-sheet';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Label from '@/components/base/label';
 import InputErrorMessage from '@/components/base/input-error-message.tsx';
@@ -19,6 +23,12 @@ const GOAL_OPTIONS: { value: number | null; label: string }[] = [
 export default function ActivityGoalField() {
   const { control } = useFormContext<ActivityFormValues>();
   const sheetRef = useRef<BottomSheetModal>(null);
+
+  // Backdrop allows us to close the modal on outside click
+  const renderBackdrop = useCallback(
+    (props: any) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} />,
+    [],
+  );
 
   return (
     <Controller
@@ -66,6 +76,7 @@ export default function ActivityGoalField() {
               snapPoints={['50%']}
               backgroundStyle={styles.sheetBackground}
               handleIndicatorStyle={styles.sheetHandle}
+              backdropComponent={renderBackdrop}
             >
               <BottomSheetView style={styles.sheetContent}>
                 {GOAL_OPTIONS.map((option) => {
