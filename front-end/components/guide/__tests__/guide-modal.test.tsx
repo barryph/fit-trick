@@ -111,9 +111,9 @@ function GifProbe({ name }: { name: string }) {
 }
 
 const gifSteps: GuideStep[] = [
-  { title: 'One', description: 'A', demo: <GifProbe name="jobA" /> },
-  { title: 'Two', description: 'B', demo: <GifProbe name="jobB" /> },
-  { title: 'Three', description: 'C', demo: <GifProbe name="jobC" /> },
+  { title: 'One', description: 'A', media: <GifProbe name="jobA" /> },
+  { title: 'Two', description: 'B', media: <GifProbe name="jobB" /> },
+  { title: 'Three', description: 'C', media: <GifProbe name="jobC" /> },
 ];
 
 function isJobVisible(name: string) {
