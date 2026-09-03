@@ -406,11 +406,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingHorizontal: 8,
   },
   stepTitle: {
     color: '#fff',
     textAlign: 'center',
+    marginTop: 5,
+    paddingHorizontal: 8,
   },
   stepDescription: {
     color: '#c6cfe0',

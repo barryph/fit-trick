@@ -1,7 +1,7 @@
 // import { Image } from 'react-native';
 import { Image, ImageSource, useImage } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import GuideMediaIcon from '@/components/guide/guide-media-icon';
 import type { GuideStep } from '@/components/guide/types';
@@ -37,12 +37,18 @@ export const HOME_GUIDE_STEPS: GuideStep[] = [
   {
     title: 'Welcome to Kadence',
     description:
-      'A rhythm keeps momentum, consistency becomes a habit. Here begins your cadence.',
+      "Kadence is designed to adapt to real life. Most programs are a fixed plan, life isn't.",
     media: (
       <GuideMediaIcon
         accent="#087cff"
-        label="Your dashboard"
-        icon={<Ionicons name="apps" size={26} color="#d8ecff" />}
+        label="Welcome"
+        icon={
+          <MaterialCommunityIcons
+            name="human-greeting"
+            size={26}
+            color="#d8ecff"
+          />
+        }
       />
     ),
   },
@@ -67,8 +73,8 @@ export const HOME_GUIDE_STEPS: GuideStep[] = [
     ),
   },
   {
-    title: 'Work the list',
-    description: 'Swipe left to edit it, swipe right to mark it done.',
+    title: 'Manage activities',
+    description: 'Swipe left to edit, swipe right to mark an activity done.',
     media: (
       <GuideGif source={require('../../assets/demos/activity-swipes.gif')} />
     ),
@@ -76,9 +82,26 @@ export const HOME_GUIDE_STEPS: GuideStep[] = [
   {
     title: 'Log past workouts',
     description:
-      'Previous days can be logged from the timeline. Tap a cell to toggle it.',
+      'Previous days can be logged from the timeline tab. Tap a cell to toggle it.',
     media: (
       <GuideGif source={require('../../assets/demos/timeline-toggle.gif')} />
+    ),
+  },
+  {
+    title: "That's it!",
+    description: 'Jump in and get started. I hope you enjoy my app!',
+    media: (
+      <GuideMediaIcon
+        accent="#087cff"
+        label="Get started"
+        icon={
+          <MaterialCommunityIcons
+            name="robot-happy"
+            size={26}
+            color="#d8ecff"
+          />
+        }
+      />
     ),
   },
   // {
