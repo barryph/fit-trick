@@ -245,6 +245,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       let response: ApiResponse<LoginResponse>;
       try {
+        // FIXME: Why does this recursively call itself? It appears as though it
+        // always calls itself and expects one to return `socialAuthInFlight` error
         response = await exchange(
           credential.idToken,
           credential.nonce,

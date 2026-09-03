@@ -50,6 +50,7 @@ export default function ActivityLastDoneField() {
               <Pressable
                 onPress={() => field.onChange(null)}
                 style={styles.clearDateButton}
+                accessibilityRole="button"
               >
                 <ThemedText style={styles.clearDateText}>
                   Clear date{' '}
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
   },
   clearDateButton: {
     alignSelf: 'flex-start',
-    marginBottom: 16,
+    marginTop: 3,
   },
   clearDateText: {
     fontSize: 14,

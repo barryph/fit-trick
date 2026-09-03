@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   },
   clearCategoryButton: {
     alignSelf: 'flex-start',
-    marginTop: 4,
+    marginTop: 3,
   },
   clearCategoryText: {
     fontSize: 14,
