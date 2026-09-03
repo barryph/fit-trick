@@ -11,7 +11,7 @@ export default function ActivityTickerField() {
       name="ticker"
       render={({ field, fieldState }) => (
         <Input
-          label="Ticker (Shorthand name)"
+          label="Ticker (shorthand)"
           placeholder="TCKR"
           autoCapitalize="characters"
           maxLength={5}

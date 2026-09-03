@@ -30,7 +30,7 @@ function Harness({
 describe('ActivityGoalField', () => {
   it('renders the label and defaults to No goal', async () => {
     await render(<Harness />);
-    expect(screen.getByText('How often do you want to do this?')).toBeTruthy();
+    expect(screen.getByText('How many times per week?')).toBeTruthy();
     expect(screen.getByText('No goal')).toBeTruthy();
   });
 

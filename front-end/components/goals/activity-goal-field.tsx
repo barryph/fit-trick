@@ -36,7 +36,7 @@ export default function ActivityGoalField() {
 
         return (
           <View style={styles.wrapper}>
-            <Label>How often do you want to do this?</Label>
+            <Label>How many times per week?</Label>
             <Pressable
               onPress={() => sheetRef.current?.present()}
               style={styles.select}

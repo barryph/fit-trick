@@ -11,8 +11,8 @@ export default function ActivityIntervalField() {
       name="interval"
       render={({ field, fieldState }) => (
         <Input
-          label="Interval (days)"
-          placeholder="Interval (days)"
+          label="Repeat frequency (days)"
+          placeholder="Repeat frequency (days)"
           keyboardType="number-pad"
           value={String(field.value)}
           onChangeText={field.onChange}
