@@ -48,6 +48,7 @@ export default function CreateActivityPage() {
         }),
         goalTargetPerWeek: values.goalTargetPerWeek,
       });
+      form.reset();
       router.back();
     } catch (error) {
       if (error instanceof ApiError) {
