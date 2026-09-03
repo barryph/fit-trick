@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Dimensions, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -23,7 +23,7 @@ const SLIDE = 42;
 const SLIDE_DURATION = 300;
 /** Cap the content region so the card never dominates small screens. */
 const CONTENT_HEIGHT = Math.min(
-  Math.max(Dimensions.get('window').height * 0.34, 220),
+  Math.max(Dimensions.get('window').height * 0.3, 220),
   300,
 );
 
@@ -121,6 +121,24 @@ export function GuideModalBody({
 }: GuideModalBodyProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
+  // One counter per step. Every step stays mounted (the transition animation
+  // relies on that), but each step's animated media (e.g. a GIF) is given a
+  // `key` derived from `mediaKeys` so that when a step is navigated to, its
+  // visual is re-mounted — replaying the GIF from frame 1 — without unmounting
+  // the step frame or disturbing the outgoing step.
+  const [mediaKeys, setMediaKeys] = useState<number[]>([]);
+
+  // Bump the counter for `index`, forcing that step's animated media to remount
+  // (restart its GIF) on the next render.
+  function bumpMediaKey(index: number) {
+    setMediaKeys((prev) => {
+      const next = prev.slice();
+      while (next.length <= index) next.push(0);
+      next[index] += 1;
+      return next;
+    });
+  }
+
   // Single source of truth for the step transition. `page === 0` shows
   // step 0, `page === 1` shows step 1, etc.; fractional values are the mid
   // transition between two adjacent steps.
@@ -132,6 +150,7 @@ export function GuideModalBody({
   useEffect(() => {
     if (!visible) return;
     setActiveIndex(0);
+    bumpMediaKey(0);
     onStepChange?.(0);
   }, [visible, onStepChange]);
 
@@ -152,6 +171,7 @@ export function GuideModalBody({
 
     setActiveIndex(nextIndex);
     onStepChange?.(nextIndex);
+    bumpMediaKey(nextIndex);
     page.value = withTiming(nextIndex, {
       duration: SLIDE_DURATION,
       easing: Easing.inOut(Easing.cubic),
@@ -196,6 +216,7 @@ export function GuideModalBody({
             index={index}
             page={page}
             active={index === activeIndex}
+            mediaKey={mediaKeys[index] ?? 0}
           />
         ))}
       </View>
@@ -261,6 +282,8 @@ interface StepFrameProps {
   index: number;
   page: SharedValue<number>;
   active: boolean;
+  /** Changed whenever this step is navigated to, so its media (GIF) replays. */
+  mediaKey: number;
 }
 
 /**
@@ -274,7 +297,7 @@ interface StepFrameProps {
  * - `index - page  < 0`   -> this step is behind: sliding to -SLIDE and
  *   fading out as it leaves.
  */
-function StepFrame({ step, index, page, active }: StepFrameProps) {
+function StepFrame({ step, index, page, active, mediaKey }: StepFrameProps) {
   const animatedStyle = useAnimatedStyle(() => {
     const rel = index - page.value;
     return {
@@ -290,15 +313,15 @@ function StepFrame({ step, index, page, active }: StepFrameProps) {
       accessibilityElementsHidden={!active}
       accessibilityLiveRegion={active ? 'polite' : 'none'}
     >
-      <StepView step={step} />
+      <StepView step={step} mediaKey={mediaKey} />
     </Animated.View>
   );
 }
 
-function StepView({ step }: { step: GuideStep }) {
+function StepView({ step, mediaKey }: { step: GuideStep; mediaKey: number }) {
   return (
     <View style={styles.stepBody}>
-      {step.media}
+      <MediaFrame media={step.media} mediaKey={mediaKey} />
       <ThemedText
         type="defaultBold"
         size="medium"
@@ -312,6 +335,23 @@ function StepView({ step }: { step: GuideStep }) {
       </ThemedText>
     </View>
   );
+}
+
+/**
+ * Renders an optional animated visual (GIF/illustration) for a step. Keyed on
+ * `mediaKey` so the node is re-mounted (restarting its GIF from frame 1) every
+ * time its step becomes active — without affecting the always-mounted step
+ * frames or the outgoing step's transition.
+ */
+function MediaFrame({
+  media,
+  mediaKey,
+}: {
+  media?: ReactNode;
+  mediaKey: number;
+}) {
+  if (media == null) return null;
+  return <View key={mediaKey}>{media}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -366,11 +406,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingHorizontal: 8,
   },
   stepTitle: {
     color: '#fff',
     textAlign: 'center',
+    marginTop: 5,
+    paddingHorizontal: 8,
   },
   stepDescription: {
     color: '#c6cfe0',

@@ -5,13 +5,13 @@ export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
   type?:
-  | 'default'
-  | 'defaultSmall'
-  | 'title'
-  | 'defaultSemiBold'
-  | 'defaultBold'
-  | 'subtitle'
-  | 'link';
+    | 'default'
+    | 'defaultSmall'
+    | 'title'
+    | 'defaultSemiBold'
+    | 'defaultBold'
+    | 'subtitle'
+    | 'link';
   weight?: '400' | '600' | '700';
   size?: 'extraSmall' | 'small' | 'regular' | 'medium' | 'large' | 'title';
   font?: 'system';

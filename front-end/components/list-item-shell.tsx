@@ -1,7 +1,7 @@
 import { StyleSheet, View, type ViewProps } from 'react-native';
 import ActivityBackground from '@/components/backgrounds/activity-background';
 
-interface IProps extends ViewProps { }
+interface IProps extends ViewProps {}
 
 export default function ListItemShell({ style, children }: IProps) {
   return (

@@ -46,9 +46,9 @@ export default function GuideMediaIcon({
       >
         {icon}
       </View>
-      <ThemedText size="extraSmall" style={styles.caption}>
-        {label}
-      </ThemedText>
+      {/* <ThemedText size="extraSmall" style={styles.caption}> */}
+      {/*   {label} */}
+      {/* </ThemedText> */}
     </View>
   );
 }
