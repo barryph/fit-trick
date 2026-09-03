@@ -525,10 +525,10 @@ function TimelineScreen() {
                                 ? styles.statusCellComplete
                                 : styles.statusCellIncomplete,
                               isCompleted &&
-                              activity.category?.color && {
-                                backgroundColor: activity.category?.color,
-                                boxShadow: `0px 0px 8px 1px ${activity.category.color}33`,
-                              },
+                                activity.category?.color && {
+                                  backgroundColor: activity.category?.color,
+                                  boxShadow: `0px 0px 8px 1px ${activity.category.color}33`,
+                                },
                               isToggling && styles.statusCellToggling,
                             ]}
                           />

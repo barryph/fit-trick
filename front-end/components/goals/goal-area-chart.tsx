@@ -59,16 +59,16 @@ export default function GoalAreaChart({
         dot:
           data.length === 1
             ? {
-              visible: true,
-              stroke:
-                data[0].count >= targetPerWeek
-                  ? GOAL_ABOVE_THRESHOLD_COLOR
-                  : GOAL_BELOW_THRESHOLD_COLOR,
-              fill:
-                data[0].count >= targetPerWeek
-                  ? GOAL_ABOVE_THRESHOLD_COLOR
-                  : GOAL_BELOW_THRESHOLD_COLOR,
-            }
+                visible: true,
+                stroke:
+                  data[0].count >= targetPerWeek
+                    ? GOAL_ABOVE_THRESHOLD_COLOR
+                    : GOAL_BELOW_THRESHOLD_COLOR,
+                fill:
+                  data[0].count >= targetPerWeek
+                    ? GOAL_ABOVE_THRESHOLD_COLOR
+                    : GOAL_BELOW_THRESHOLD_COLOR,
+              }
             : false,
         threshold: {
           y: targetPerWeek,

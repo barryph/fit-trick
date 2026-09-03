@@ -120,7 +120,9 @@ function isJobVisible(name: string) {
   // Non-active steps are accessibility-hidden (StepFrame sets
   // `accessibilityElementsHidden`), so probe them explicitly to prove they are
   // still mounted/rendered during transitions.
-  return screen.getByText(`gif:${name}`, { includeHiddenElements: true }) !== null;
+  return (
+    screen.getByText(`gif:${name}`, { includeHiddenElements: true }) !== null
+  );
 }
 
 describe('GuideModalBody GIF restart', () => {
