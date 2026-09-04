@@ -240,6 +240,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         credential = await provider();
       } catch (err) {
+        console.log('Failed trying to call provider:', err);
         return mapSocialAuthError(err);
       }
 

@@ -7,9 +7,47 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:177834212749:android:a220ea94fb65d4ea9451c4",
+        "android_client_info": {
+          "package_name": "com.barryph.kadence"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwZCPM0Qht75YgUScuaTUyGf9-eRlaQx0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:177834212749:android:d71aa31ce29cb6529451c4",
         "android_client_info": {
           "package_name": "com.barryph.kadence.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwZCPM0Qht75YgUScuaTUyGf9-eRlaQx0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:177834212749:android:979eff8ae24d9e8b9451c4",
+        "android_client_info": {
+          "package_name": "com.barryph.kadence.preview"
         }
       },
       "oauth_client": [],

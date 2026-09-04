@@ -35,6 +35,18 @@ import {
 // This prevents SplashScreen from auto hiding while the fonts are in loading state
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * Logs all requests to the console
+ * Helpful for debugging during preview/production app build debugging sessions
+ */
+// global._fetch = fetch;
+// global.fetch = function (uri, options, ...args) {
+//   return global._fetch(uri, options, ...args).then((response) => {
+//     console.log('Fetch', { request: { uri, options, ...args }, response });
+//     return response;
+//   });
+// };
+
 function FontsProvider({ children }: { children: React.ReactNode }) {
   const [loaded, error] = useFonts({
     IBMPlexMono_400Regular,
@@ -80,6 +92,7 @@ export default function RootLayout() {
       (Constants.expoConfig?.extra as { appVariant?: string } | undefined)
         ?.appVariant ?? 'production';
     const crashlyticsEnabled = variant !== 'development';
+    console.log('crashlyticsEnabled', crashlyticsEnabled);
 
     setCrashlyticsCollectionEnabled(crashlyticsEnabled);
     setCrashlyticsCustomKey('app_variant', variant);
