@@ -9,9 +9,9 @@ each with its own iOS bundle identifier / Android package name:
 
 | Variant     | iOS bundle id              | Android package id        |
 |-------------|----------------------------|---------------------------|
-| development | `com.barryph.kadence.dev`  | `com.barryph.kadence.dev` |
-| preview     | `com.barryph.kadence.preview` | `com.barryph.kadence.preview` |
-| production  | `com.barryph.kadence`      | `com.barryph.kadence`     |
+| development | `com.codecompletelabs.kadence.dev`  | `com.codecompletelabs.kadence.dev` |
+| preview     | `com.codecompletelabs.kadence.preview` | `com.codecompletelabs.kadence.preview` |
+| production  | `com.codecompletelabs.kadence`      | `com.codecompletelabs.kadence`     |
 
 Create **one Firebase project** in the [Firebase console](https://console.firebase.google.com)
 and register a single Android app and a single iOS app per variant
@@ -32,17 +32,17 @@ placeholder with the value downloaded from the Firebase console.
 
 Download from: Firebase console → Project settings → Your apps → {app} → "Download google-services.json".
 
-- `android/google-services.json` → production (`com.barryph.kadence`)
-- `android/google-services-preview.json` → preview (`com.barryph.kadence.preview`)
-- `android/google-services-dev.json` → development (`com.barryph.kadence.dev`)
+- `android/google-services.json` → production (`com.codecompletelabs.kadence`)
+- `android/google-services-preview.json` → preview (`com.codecompletelabs.kadence.preview`)
+- `android/google-services-dev.json` → development (`com.codecompletelabs.kadence.dev`)
 
 ### iOS — `ios/GoogleService-Info*.plist`
 
 Download from: Firebase console → Project settings → Your apps → {app} → "Download GoogleService-Info.plist".
 
-- `ios/GoogleService-Info.plist` → production (`com.barryph.kadence`)
-- `ios/GoogleService-Info-preview.plist` → preview (`com.barryph.kadence.preview`)
-- `ios/GoogleService-Info-dev.plist` → development (`com.barryph.kadence.dev`)
+- `ios/GoogleService-Info.plist` → production (`com.codecompletelabs.kadence`)
+- `ios/GoogleService-Info-preview.plist` → preview (`com.codecompletelabs.kadence.preview`)
+- `ios/GoogleService-Info-dev.plist` → development (`com.codecompletelabs.kadence.dev`)
 
 ## After adding real files
 

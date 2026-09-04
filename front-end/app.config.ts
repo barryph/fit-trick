@@ -12,9 +12,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   // Define unique identifiers for each environment
   const uniqueIdMap: Record<string, string> = {
-    development: 'com.barryph.kadence.dev',
-    preview: 'com.barryph.kadence.preview',
-    production: 'com.barryph.kadence',
+    development: 'com.codecompletelabs.kadence.dev',
+    preview: 'com.codecompletelabs.kadence.preview',
+    production: 'com.codecompletelabs.kadence',
   };
 
   // Define unique names for each environment
@@ -56,11 +56,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     // (com.googleusercontent.apps.<client-id>) before building iOS.
     ...(googleIosUrlScheme
       ? ([
-          [
-            '@react-native-google-signin/google-signin',
-            { iosUrlScheme: googleIosUrlScheme },
-          ],
-        ] as [string, { iosUrlScheme: string }][])
+        [
+          '@react-native-google-signin/google-signin',
+          { iosUrlScheme: googleIosUrlScheme },
+        ],
+      ] as [string, { iosUrlScheme: string }][])
       : []),
     // React Native Firebase (see /firebase/README for setup).
     '@react-native-firebase/app',
