@@ -27,7 +27,7 @@ import { useActivityQueue } from '@/hooks/use-activity-queue';
 import { useGuide } from '@/hooks/use-guide';
 import GuideModal from '@/components/guide/guide-modal';
 import GuideInfoButton from '@/components/guide/guide-info-button';
-import { HOME_GUIDE_STEPS } from './home-guide-steps';
+import { HOME_GUIDE_STEPS } from '@/components/guide/home-guide-steps';
 import {
   logOnboardingComplete,
   logOnboardingSkip,

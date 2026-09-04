@@ -14,7 +14,7 @@
 
 /**
  * Onboarding = the Home guide modal (see `hooks/use-guide.ts` and
- * `app/(tabs)/home-guide-steps.tsx`). Each of these lets us measure the
+ * `components/guide/home-guide-steps.tsx`). Each of these lets us measure the
  * onboarding funnel: start, per-step reach, per-step completion, finish, and
  * abandonment ("skip" = dismissed without completing).
  */
