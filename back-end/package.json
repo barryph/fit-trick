@@ -5,6 +5,7 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "packageManager": "pnpm@10.34.5",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -19,13 +20,13 @@
     "test:unit": "jest --config jest.unit.config.ts",
     "test:integration": "jest --config ./test/jest-integration.json --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
-    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
+    "test:all": "pnpm run test:unit && pnpm run test:integration && pnpm run test:e2e",
     "test:watch": "jest --config jest.unit.config.ts --watch",
     "test:cov": "jest --config jest.unit.config.ts --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --config jest.unit.config.ts --runInBand",
-    "db:down": "npx knex-migrate down --knexfile knexfile.ts",
-    "db:up": "npx knex-migrate up --knexfile knexfile.ts",
-    "db:seed": "npx knex seed:run --knexfile knexfile.ts"
+    "db:down": "pnpm dlx knex-migrate down --knexfile knexfile.ts",
+    "db:up": "pnpm dlx knex-migrate up --knexfile knexfile.ts",
+    "db:seed": "pnpm exec knex seed:run --knexfile knexfile.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
