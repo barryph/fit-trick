@@ -6,10 +6,10 @@ Kadence uses a layered testing strategy: fast Jest/RNTL tests for logic and UI b
 
 ```bash
 # Unit + component + integration (offline, mocked APIs)
-npm test
+pnpm test
 
 # Watch mode
-npm run test:watch
+pnpm run test:watch
 ```
 
 ## Jest + React Native Testing Library
@@ -64,7 +64,7 @@ Maestro flows live in `.maestro/flows/` and run against a **local or staging bac
 1. **Backend running** (from repo root):
    ```bash
    cd ../back-end
-   npm run start:dev
+   pnpm run start:dev
    ```
 2. **Test user** seeded in the database (`test@kadence.dev` / `testpassword123`, or override via env vars)
 3. **App built and installed** on emulator/device (dev client or release build)
@@ -75,16 +75,16 @@ Maestro flows live in `.maestro/flows/` and run against a **local or staging bac
 
 ```bash
 # All flows
-npm run test:maestro
+pnpm run test:maestro
 
 # Smoke only (launch → login → visit tabs)
-npm run test:maestro:smoke
+pnpm run test:maestro:smoke
 
 # Single flow
 maestro test .maestro/flows/login-logout.yaml
 
 # Override credentials
-TEST_EMAIL=user@example.com TEST_PASSWORD=secret npm run test:maestro
+TEST_EMAIL=user@example.com TEST_PASSWORD=secret pnpm run test:maestro
 ```
 
 ### Flows
