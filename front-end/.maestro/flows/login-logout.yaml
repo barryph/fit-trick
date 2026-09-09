@@ -11,5 +11,6 @@ env:
 - assertVisible: "Activities In Motion"
 - tapOn:
     point: "90%,8%"
+- assertVisible: "Profile"
 - tapOn: "Logout"
 - assertVisible: "Login!"

@@ -146,3 +146,45 @@ describe('Profile screen account deletion', () => {
     expect(getMockAuth().deleteAccount).not.toHaveBeenCalled();
   });
 });
+
+describe('Profile screen logout', () => {
+  beforeEach(() => {
+    setMockAuth({ user: testUser, isAuthenticated: true });
+  });
+
+  it('shows a clearly visible Logout button', async () => {
+    await renderProfile();
+
+    expect(screen.getByText('Logout')).toBeTruthy();
+  });
+
+  it('logs the user out when Logout is pressed', async () => {
+    await renderProfile();
+
+    await fireEvent.press(screen.getByText('Logout'));
+
+    expect(getMockAuth().logout).toHaveBeenCalledTimes(1);
+  });
+
+  it('surfaces an error and keeps the Logout button available when logout fails', async () => {
+    const auth = setMockAuth({
+      user: testUser,
+      isAuthenticated: true,
+      logout: jest.fn().mockRejectedValue(new Error('network down')),
+    });
+
+    await renderProfile();
+    await fireEvent.press(screen.getByText('Logout'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Something went wrong, please try again.'),
+      ).toBeTruthy();
+    });
+    expect(auth.logout).toHaveBeenCalledTimes(1);
+
+    // The user can retry without leaving the screen.
+    await fireEvent.press(screen.getByText('Logout'));
+    expect(auth.logout).toHaveBeenCalledTimes(2);
+  });
+});
