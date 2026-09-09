@@ -47,7 +47,7 @@ Download from: Firebase console → Project settings → Your apps → {app} →
 ## After adding real files
 
 ```bash
-npx expo prebuild --clean   # regenerate ios/android with Firebase injected
+pnpm exec expo prebuild --clean   # regenerate ios/android with Firebase injected
 # or simply build via EAS (CNG regenerates native projects)
 ```
 

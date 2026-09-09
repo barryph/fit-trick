@@ -120,7 +120,7 @@ Public values (embedded in the app bundle — treat as public):
 ### iOS notes
 - The Google config plugin (in `front-end/app.config.ts`) appends the reversed
   client ID as a URL scheme to `Info.plist` during prebuild.
-- Rebuild with `npx expo prebuild` / EAS after changing config.
+- Rebuild with `pnpm exec expo prebuild` / EAS after changing config.
 
 ---
 
@@ -235,18 +235,18 @@ identity model supports it, and it must always require an authenticated session.
 # backend
 cd back-end
 # set GOOGLE_SERVER_CLIENT_IDS and APPLE_CLIENT_IDS in .env (see .env.example)
-npm run db:up
-npm run start:dev
+pnpm run db:up
+pnpm run start:dev
 
 # frontend
 cd front-end
 # set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
-npm run start
+pnpm run start
 ```
 
 Note: native sign-in requires a development build (native modules are not
-available in Expo Go). Use `npx expo run:ios` / `npx expo run:android` or an EAS
-development build.
+available in Expo Go). Use `pnpm exec expo run:ios` / `pnpm exec expo run:android`
+or an EAS development build.
 
 ## Production configuration
 

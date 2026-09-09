@@ -12,7 +12,11 @@ Hello 👋, this is me experimenting with Domain Driven Design + Clean Architect
 Install dependencies
 
 ```bash
-npm install;
+# Install dependencies in each package (pnpm is required; each package pins
+# pnpm via its packageManager field):
+#   cd back-end  && pnpm install
+#   cd front-end && pnpm install
+pnpm install
 ```
 
 ## Setup
@@ -23,8 +27,8 @@ This project uses knex to handle database migrations.
 # Run this as the user with postgres permissions
 createdb kadence;
 # Run these inside the back-end/ dir
-npm run db:up;
-npm run db:seed;
+pnpm run db:up;
+pnpm run db:seed;
 ```
 
 ## Usage
@@ -35,13 +39,13 @@ More details in `back-end/README.md`
 ```bash
 # Make sure your postgresql server is running
 cd back-end;
-npm run start:dev;
+pnpm run start:dev;
 ```
 
 Run the client
 ```bash
 cd front-end;
-npm run dev;
+pnpm run start;   # expo start (there is no pnpm run dev)
 ```
 
 ## License

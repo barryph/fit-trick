@@ -34,7 +34,7 @@ Each layer protects against different failure modes:
 - Dependencies installed:
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### Integration and E2E suites
@@ -59,16 +59,16 @@ All commands are run from the `back-end/` directory.
 Unit tests cover domain entities, value objects, application services, guards, and the exception filter. Repositories and external services are mocked.
 
 ```bash
-npm run test:unit
+pnpm run test:unit
 ```
 
 Other useful commands:
 
 ```bash
-npm run test          # alias for test:unit
-npm run test:watch    # re-run on file changes
-npm run test:cov      # unit tests with coverage report
-npm run test:debug    # run with Node inspector attached
+pnpm run test          # alias for test:unit
+pnpm run test:watch    # re-run on file changes
+pnpm run test:cov      # unit tests with coverage report
+pnpm run test:debug    # run with Node inspector attached
 ```
 
 **Expected runtime:** a few seconds.
@@ -78,7 +78,7 @@ npm run test:debug    # run with Node inspector attached
 Integration tests exercise Knex repositories and read queries against a real PostgreSQL instance. The database is never mocked.
 
 ```bash
-npm run test:integration
+pnpm run test:integration
 ```
 
 On the first run, Testcontainers pulls the `postgres:16-alpine` image and starts a container. Subsequent runs reuse cached images and are faster.
@@ -90,7 +90,7 @@ On the first run, Testcontainers pulls the `postgres:16-alpine` image and starts
 E2E tests boot the full Nest application (including sessions, Passport, validation pipes, and exception filters) and exercise HTTP endpoints via Supertest.
 
 ```bash
-npm run test:e2e
+pnpm run test:e2e
 ```
 
 **Expected runtime:** 30–90 seconds.
@@ -98,7 +98,7 @@ npm run test:e2e
 ### Run everything
 
 ```bash
-npm run test:all
+pnpm run test:all
 ```
 
 Runs unit → integration → e2e in sequence. This is the order recommended for CI.
@@ -108,7 +108,7 @@ Runs unit → integration → e2e in sequence. This is the order recommended for
 Type checking is separate from tests but should run in CI before test suites:
 
 ```bash
-npm run typecheck
+pnpm run typecheck
 ```
 
 ## What each suite covers
@@ -274,11 +274,11 @@ These application changes support reliable testing:
 Recommended job order:
 
 ```bash
-npm run lint
-npm run typecheck
-npm run test:unit
-npm run test:integration   # requires Docker
-npm run test:e2e           # requires Docker
+pnpm run lint
+pnpm run typecheck
+pnpm run test:unit
+pnpm run test:integration   # requires Docker
+pnpm run test:e2e           # requires Docker
 ```
 
 Integration and E2E jobs need a Docker-in-Docker or Docker socket service (e.g. `docker:dind` in GitLab CI, or the standard Docker setup in GitHub Actions).
@@ -308,7 +308,7 @@ Check that `test/.test-env.json` was created during global setup. If a previous 
 
 ```bash
 rm -f test/.test-env.json
-npm run test:integration
+pnpm run test:integration
 ```
 
 ### Tests interfere with each other
