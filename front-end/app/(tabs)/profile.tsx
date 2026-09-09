@@ -5,14 +5,31 @@ import Background from '@/components/backgrounds/background';
 import Container from '@/components/base/container';
 import Button from '@/components/base/button';
 import { ThemedText } from '@/components/base/themed-text';
+import AlertError from '@/components/alerts/alert-error';
 import DeleteAccountModal from '@/components/auth/delete-account-modal';
 import { useAuth } from '@/context/auth-context';
 
 function Profile() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   if (!user) return null;
+
+  async function handleLogout() {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    setLogoutError(null);
+
+    try {
+      await logout();
+      // Clearing auth state makes the navigation guard redirect to /login.
+    } catch {
+      setLogoutError('Something went wrong, please try again.');
+      setIsLoggingOut(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -27,6 +44,21 @@ function Profile() {
           </ThemedText>
           <ThemedText type="defaultBold">{user.email}</ThemedText>
         </View>
+
+        {logoutError ? (
+          <View style={styles.error}>
+            <AlertError>{logoutError}</AlertError>
+          </View>
+        ) : null}
+
+        <Button
+          onPress={handleLogout}
+          isLoading={isLoggingOut}
+          style={styles.logoutButton}
+          textStyle={styles.logoutButtonText}
+        >
+          Logout
+        </Button>
 
         <View style={styles.dangerZone}>
           <Button
@@ -69,8 +101,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     fontSize: 13,
   },
-  muted: {
-    opacity: 0.8,
+  error: {
+    marginTop: 8,
+  },
+  logoutButton: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  logoutButtonText: {
+    color: '#fff',
   },
   dangerZone: {
     marginTop: 24,

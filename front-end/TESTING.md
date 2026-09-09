@@ -92,7 +92,7 @@ TEST_EMAIL=user@example.com TEST_PASSWORD=secret npm run test:maestro
 | Flow | File | Validates |
 |------|------|-----------|
 | Tab smoke | `smoke-tabs.yaml` | Launch, login, Home/Timeline/Categories render |
-| Auth session | `login-logout.yaml` | Login → Home → drawer logout → Login |
+| Auth session | `login-logout.yaml` | Login → Home → account page logout → Login |
 | Activity lifecycle | `create-complete-activity.yaml` | Create activity → appears on Home |
 | Timeline toggle | `timeline-toggle.yaml` | Timeline grid loads, cell interaction |
 
