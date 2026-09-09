@@ -6,9 +6,8 @@ Personal habit tracker: `back-end/` (NestJS 11 API + PostgreSQL) and `front-end/
 
 * Always develop in a git worktree; never modify the primary working tree directly, unless specifically specified.
 * Base the worktree on the latest local `main` and use a dedicated feature branch (style: `feat/*`).
-* The repo root gitignores `./worktrees` — it is a supported location for worktrees, or use a sibling directory.
-* Worktree checkouts have no `node_modules`: run `npm i` in each package you touch after creating one.
-* Worktree checkouts also lack the gitignored `front-end/.env` and `back-end/.env`: after creating a worktree, create a symlink to the primary tree's copy, e.g. `ln -s <repo-root>/front-end/.env <worktree>/back-end/.env` and `ln -s <repo-root>/back-end/`.
+* Worktrees have no `node_modules`: run `npm i` in each package you touch after creating one.
+* Worktrees lack the gitignored `front-end/.env` and `back-end/.env`: after creating a worktree, create a symlink to the primary tree's copy, e.g. `ln -s <repo-root>/front-end/.env <worktree>/back-end/.env` and `ln -s <repo-root>/back-end/`.
 * Run tests, lint, typecheck, and builds from the worktree.
 
 ## back-end/ — NestJS API
