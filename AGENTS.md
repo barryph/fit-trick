@@ -2,8 +2,8 @@
 
 Personal habit tracker: `back-end/` (NestJS 11 API + PostgreSQL) and `front-end/` (Expo SDK 54 React Native app). These are two independent packages — there is **no root package.json / workspace**. **pnpm** is the package manager for both. Install (`pnpm install`) and run scripts (`pnpm run <script>`) from inside the package directory; each package pins pnpm via its `packageManager` field and has its own `pnpm-lock.yaml`. CI (`.github/workflows/backend-test.yml`, `frontend-test.yml`) runs per side.
 
-* The `front-end/.npmrc` sets `node-linker=hoisted` (Expo SDK 54 supports pnpm's isolated layout, but RN native modules can break under isolation; hoisted keeps `node_modules` flat like npm did).
-* pnpm 10 blocks dependency build scripts by default (reported as "Ignored build scripts"); only approve the ones you actually need. Keep CI installs consistent via `pnpm install --frozen-lockfile`.
+* `front-end/pnpm-workspace.yaml` sets `nodeLinker: hoisted` (Expo SDK 54 supports pnpm's isolated layout, but RN native modules and Jest can break under isolation; hoisted keeps `node_modules` flat like npm did). Since pnpm 11 non-auth settings are read from `pnpm-workspace.yaml`, not `.npmrc`.
+* pnpm blocks dependency build scripts by default (reported as "Ignored build scripts"); only approve the ones you actually need (`allowBuilds` in each package's `pnpm-workspace.yaml`). Keep CI installs consistent via `pnpm install --frozen-lockfile`.
 
 ## Worktrees (required)
 

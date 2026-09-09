@@ -1,3 +1,17 @@
+# pnpm settings for the Expo (React Native) app.
+#
+# Expo SDK 54 supports pnpm's default isolated installs, but React Native
+# native modules (autolinking/Metro/native builds) and Jest's node_modules
+# transform patterns can break under isolation (real paths under
+# node_modules/.pnpm/... are not matched). nodeLinker: hoisted gives
+# node_modules the same flat layout npm produced, which is the lowest-risk
+# setup for RN tooling. See Expo docs "Work with monorepos" (Common issues ->
+# Package managers with isolated dependencies).
+#
+# Note: since pnpm 11 non-auth settings are no longer read from .npmrc; they
+# must live in pnpm-workspace.yaml (see https://pnpm.io/settings).
+nodeLinker: hoisted
+
 allowBuilds:
   '@firebase/util': false
   protobufjs: false
