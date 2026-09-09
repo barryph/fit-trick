@@ -1,64 +1,44 @@
 {
   "project_info": {
-    "project_number": "177834212749",
-    "project_id": "kadence-58e1b",
-    "storage_bucket": "kadence-58e1b.firebasestorage.app"
+    "project_number": "659821226552",
+    "project_id": "kadence---dev",
+    "storage_bucket": "kadence---dev.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:177834212749:android:a220ea94fb65d4ea9451c4",
+        "mobilesdk_app_id": "1:659821226552:android:8f0aa53bb29e907d9e94cd",
         "android_client_info": {
-          "package_name": "com.barryph.kadence"
+          "package_name": "com.codecompletelabs.kadence.dev"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "659821226552-23bdqfe96le0t8nssnobvblgl4f4pkq6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.codecompletelabs.kadence.dev",
+            "certificate_hash": "2b7e06d6993cc61911f0c1d703bc54bb9da03ce9"
+          }
+        },
+        {
+          "client_id": "659821226552-9plao4hcr83rl7np84iqh56m8l918adm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyAwZCPM0Qht75YgUScuaTUyGf9-eRlaQx0"
+          "current_key": "AIzaSyBTJuBSDE1cjHvEcBe3S3T1Jk7aHh8E7yY"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:177834212749:android:d71aa31ce29cb6529451c4",
-        "android_client_info": {
-          "package_name": "com.barryph.kadence.dev"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAwZCPM0Qht75YgUScuaTUyGf9-eRlaQx0"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:177834212749:android:979eff8ae24d9e8b9451c4",
-        "android_client_info": {
-          "package_name": "com.barryph.kadence.preview"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAwZCPM0Qht75YgUScuaTUyGf9-eRlaQx0"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "659821226552-9plao4hcr83rl7np84iqh56m8l918adm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
