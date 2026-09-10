@@ -1,10 +1,17 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react-native';
-import { useLocalSearchParams } from 'expo-router';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react-native';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { TestSafeAreaProvider } from '@/test/setup/test-safe-area';
 import EditActivityPage from '@/app/(tabs)/activities/edit/[id]';
 import { useActivityQuery } from '@/hooks/queries/use-activities';
 import { useCategoriesQuery } from '@/hooks/queries/use-categories';
+import { useEditActivityMutation } from '@/hooks/mutations/use-activity-mutations';
 
 jest.mock('@/hooks/queries/use-activities');
 jest.mock('@/hooks/queries/use-categories');
@@ -25,6 +32,8 @@ jest.mock('@/hooks/mutations/use-activity-mutations', () => ({
 
 const mockUseActivityQuery = useActivityQuery as jest.Mock;
 const mockUseCategoriesQuery = useCategoriesQuery as jest.Mock;
+const mockUseEditActivityMutation = useEditActivityMutation as jest.Mock;
+const mockUseFocusEffect = useFocusEffect as jest.Mock;
 
 const categories = [
   { id: 1, userId: 'u1', name: 'Fitness', color: '#038df0' },
@@ -69,6 +78,10 @@ describe('Edit Activity page', () => {
       isPending: false,
       isError: false,
     });
+    // No-op by default; the re-open test installs its own implementation to
+    // capture the focus callback.
+    mockUseFocusEffect.mockImplementation(() => {});
+    mockUseEditActivityMutation.mockReturnValue({ mutateAsync: jest.fn() });
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: '1' });
   });
 
@@ -129,5 +142,34 @@ describe('Edit Activity page', () => {
     expect(view.queryByDisplayValue('SQT')).toBeNull();
     expect(view.queryByText('Fitness')).toBeNull();
     expect(view.getByPlaceholderText('TCKR').props.value).toBe('');
+  });
+
+  it('clears stale UI state when the page is opened again', async () => {
+    let focusCallback: (() => void) | undefined;
+    mockUseFocusEffect.mockImplementation((cb: () => void) => {
+      focusCallback = cb;
+    });
+    mockUseActivityQuery.mockReturnValue(queryActivity('1'));
+    mockUseEditActivityMutation.mockReturnValue({
+      mutateAsync: jest.fn().mockRejectedValue(new Error('network down')),
+    });
+
+    await renderEditPage();
+
+    await waitFor(() =>
+      expect(screen.getByDisplayValue('Squats')).toBeTruthy(),
+    );
+
+    await fireEvent.press(screen.getByText('Save'));
+
+    const failedSave = 'Something went wrong, please try again.';
+    await waitFor(() => expect(screen.getByText(failedSave)).toBeTruthy());
+
+    // Leaving the page and coming back must not restore the stale error.
+    await act(async () => {
+      focusCallback?.();
+    });
+
+    expect(screen.queryByText(failedSave)).toBeNull();
   });
 });

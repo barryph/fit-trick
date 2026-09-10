@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,7 +8,7 @@ import {
   Dimensions,
   View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { FormProvider } from 'react-hook-form';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -24,7 +24,6 @@ import ActivityTickerField from '@/components/activities/fields/activity-ticker-
 import ActivityGoalField from '@/components/goals/activity-goal-field';
 import { ActivityFormValues } from '@/components/activities/activity-schema';
 import Skeleton from '@/components/ui/skeleton';
-import AlertSuccess from '@/components/alerts/alert-success';
 import DeleteActivityModal from '@/components/activities/delete-activity-modal';
 import { useActivityQuery } from '@/hooks/queries/use-activities';
 import { useCategoriesQuery } from '@/hooks/queries/use-categories';
@@ -47,7 +46,6 @@ export default function EditActivityPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<boolean>(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const form = useActivityForm();
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
@@ -76,14 +74,24 @@ export default function EditActivityPage() {
     setInitializedForId(String(activityId));
   }, [activityId, activityQuery.data, form, initializedForId]);
 
-  // Clear transient UI state when switching between activities.
-  useEffect(() => {
+  // Transient UI state must never survive a visit to this screen. A successful
+  // save redirects away, and a stale error, open dropdown, or open delete modal
+  // would otherwise still be showing when the page is opened again.
+  const resetUiState = useCallback(() => {
     setErrorMessage(null);
-    setSuccessMessage(false);
     setIsSubmitting(false);
     setShowSettingsDropdown(false);
     setIsDeleteModalVisible(false);
-  }, [activityId]);
+  }, []);
+
+  // Clear transient UI state when switching between activities.
+  useEffect(() => {
+    resetUiState();
+  }, [activityId, resetUiState]);
+
+  // The screen stays mounted as a tab, so opening or re-opening the page (for
+  // example returning after a save) is a focus event, not a mount.
+  useFocusEffect(resetUiState);
 
   const formReady =
     !isString(activityId) || initializedForId === String(activityId);
@@ -94,7 +102,6 @@ export default function EditActivityPage() {
       return;
     }
 
-    setSuccessMessage(false);
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -109,7 +116,6 @@ export default function EditActivityPage() {
           goalTargetPerWeek: values.goalTargetPerWeek,
         },
       });
-      setSuccessMessage(true);
       router.back();
     } catch (error) {
       if (error instanceof ApiError) {
@@ -216,7 +222,6 @@ export default function EditActivityPage() {
               </>
             ) : (
               <>
-                {successMessage && <AlertSuccess>Saved!</AlertSuccess>}
                 <FormProvider {...form}>
                   <ActivityNameField />
                   <ActivityTickerField />
