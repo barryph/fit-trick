@@ -35,39 +35,43 @@ function Profile() {
     <View style={styles.container}>
       <Background showRed={false} />
       <Container style={styles.content}>
-        <ThemedText style={styles.title} type="title" size="large">
-          Profile
-        </ThemedText>
-        <View style={styles.card}>
-          <ThemedText size="small" style={styles.label}>
-            Email
+        <View style={styles.detailsContainer}>
+          <ThemedText style={styles.title} type="title" size="large">
+            Profile
           </ThemedText>
-          <ThemedText type="defaultBold">{user.email}</ThemedText>
+          <View style={styles.card}>
+            <ThemedText size="small" style={styles.label}>
+              Email
+            </ThemedText>
+            <ThemedText type="defaultBold">{user.email}</ThemedText>
+          </View>
         </View>
 
-        {logoutError ? (
-          <View style={styles.error}>
-            <AlertError>{logoutError}</AlertError>
-          </View>
-        ) : null}
+        <View>
+          {logoutError ? (
+            <View style={styles.error}>
+              <AlertError>{logoutError}</AlertError>
+            </View>
+          ) : null}
 
-        <Button
-          onPress={handleLogout}
-          isLoading={isLoggingOut}
-          style={styles.logoutButton}
-          textStyle={styles.logoutButtonText}
-        >
-          Logout
-        </Button>
-
-        <View style={styles.dangerZone}>
           <Button
-            onPress={() => setIsDeleteModalOpen(true)}
-            style={styles.deleteButton}
-            textStyle={styles.deleteButtonText}
+            onPress={handleLogout}
+            isLoading={isLoggingOut}
+            style={styles.logoutButton}
+            textStyle={styles.logoutButtonText}
           >
-            Delete Account
+            Logout
           </Button>
+
+          <View style={styles.dangerZone}>
+            <Button
+              onPress={() => setIsDeleteModalOpen(true)}
+              style={styles.deleteButton}
+              textStyle={styles.deleteButtonText}
+            >
+              Delete Account
+            </Button>
+          </View>
         </View>
       </Container>
 
@@ -85,6 +89,11 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 32,
+    minHeight: '100%',
+    justifyContent: 'space-between',
+  },
+  detailsContainer: {
+    paddingBottom: 25,
   },
   title: {
     marginTop: 10,
