@@ -63,12 +63,12 @@ describe('Goal insights screen', () => {
       expect(screen.getByText('2/3 this week')).toBeTruthy();
       const performanceText = screen.getByText('Performance');
       expect(
-        within(performanceText.parent).getByText('Over the last 3 weeks'),
+        within(performanceText.parent!).getByText('Over the last 3 weeks'),
       ).toBeTruthy();
       expect(screen.getByText('50%')).toBeTruthy();
       const cadenceText = screen.getByText('Cadence');
       expect(
-        within(cadenceText.parent).getByText('Over the last 3 weeks'),
+        within(cadenceText.parent!).getByText('Over the last 3 weeks'),
       ).toBeTruthy();
     });
   });

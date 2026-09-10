@@ -39,19 +39,16 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
   try {
     response = await GoogleSignin.signIn();
   } catch (error) {
-    console.log('Log:: Error signing in with GoogleSignin', error);
     console.error('Error:: Error signing in with GoogleSignin', error);
     throw mapGoogleError(error);
   }
 
   if (response.type === 'cancelled' || !response.data) {
-    console.log('log:: Error: signInWithGoogle cancelled');
     console.error('Error:: Error: signInWithGoogle cancelled');
     throw new SocialAuthError('cancelled', 'Google sign-in was cancelled');
   }
 
   if (!response.data.idToken) {
-    console.log('Error: no ID token');
     throw new SocialAuthError('failed', 'No ID token returned from Google');
   }
 
@@ -79,7 +76,6 @@ function mapGoogleError(error: unknown): SocialAuthError {
   ) {
     return new SocialAuthError('failed', 'Google sign-in could not complete');
   }
-  console.log('LOG:: Inside mapping', error);
   console.error('ERR:: Inside mapping', error);
   return new SocialAuthError('failed', 'Google sign-in failed');
 }

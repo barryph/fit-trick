@@ -30,6 +30,12 @@ export const ErrorCode = {
   ACCOUNT_NOT_FOUND: 'ACCOUNT_NOT_FOUND',
   PROVIDER_REVOCATION_FAILED: 'PROVIDER_REVOCATION_FAILED',
 
+  /**
+   * The session is gone (cookie expired, revoked, or never sent). Distinct from
+   * INVALID_CREDENTIALS, which means a sign-in attempt was rejected.
+   */
+  UNAUTHORIZED: 'UNAUTHORIZED',
+
   // Social authentication (client-side, not from the backend)
   SOCIAL_AUTH_CANCELLED: 'SOCIAL_AUTH_CANCELLED',
   SOCIAL_AUTH_UNAVAILABLE: 'SOCIAL_AUTH_UNAVAILABLE',

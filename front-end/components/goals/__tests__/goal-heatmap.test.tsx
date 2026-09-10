@@ -5,7 +5,6 @@ import {
   getGoalHeatmapColor,
   GOAL_ABOVE_THRESHOLD_COLOR,
   GOAL_BELOW_THRESHOLD_COLOR,
-  GOAL_MET_COLOR,
 } from '@/lib/goals/goal-colors';
 
 describe('GoalHeatmap', () => {

@@ -17,6 +17,7 @@ export class GetActivityByIdQuery {
     activityId: string,
     userId: string,
     goalWeekRange: GoalWeekRange,
+    today: string,
   ): Promise<ActivityWithCategoryDTO> {
     const result = await this.knexService.connection.raw<{
       rows: any[];
@@ -37,7 +38,7 @@ export class GetActivityByIdQuery {
             ELSE 0
           END AS current_week_count,
           GREATEST(
-            EXTRACT(DAY FROM activities.interval) - (CURRENT_DATE - (SELECT MAX(date) FROM activity_events WHERE activity_id = activities.id)),
+            EXTRACT(DAY FROM activities.interval) - (:today::date - (SELECT MAX(date) FROM activity_events WHERE activity_id = activities.id)),
             0
           ) AS days_until
         FROM activities
@@ -47,6 +48,7 @@ export class GetActivityByIdQuery {
       `,
       {
         activityId,
+        today,
         goalFrom: goalWeekRange.from,
         goalTo: goalWeekRange.to,
       },

@@ -14,6 +14,18 @@ describe('date utils', () => {
   });
 
   describe('YYYYMMDD', () => {
+    // This value is the calendar date sent to the API, so it must be derived
+    // from the local date parts and never from locale/ICU formatting.
+    it('is built from the local date parts, not the runtime locale', () => {
+      const lateEvening = new Date(2026, 6, 28, 23, 30);
+      expect(YYYYMMDD(lateEvening)).toBe('2026-07-28');
+      expect(YYYYMMDD(new Date(2026, 0, 5, 0, 1))).toBe('2026-01-05');
+    });
+
+    it('always returns a YYYY-MM-DD shaped date', () => {
+      expect(YYYYMMDD()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
     it('returns today in YYYY-MM-DD format by default', () => {
       const today = new Date();
       const expected = new Intl.DateTimeFormat('en-CA').format(today);

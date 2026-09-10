@@ -25,7 +25,9 @@ describe('query API integration', () => {
   });
 
   it('unwraps activity list responses', async () => {
-    const data = await unwrapApiResponse(await activitiesAPI.getAllByUser());
+    const data = await unwrapApiResponse(
+      await activitiesAPI.getAllByUser('2026-07-28'),
+    );
     expect(data.activities).toHaveLength(2);
   });
 

@@ -13,6 +13,7 @@ import CategoryModal, {
 } from '@/components/categories/category-modal';
 import DeleteCategoryModal from '@/components/categories/delete-category-modal';
 import LoaderScreen from '@/components/base/loader-screen';
+import ErrorScreen from '@/components/base/error-screen';
 import Dot from '@/components/dot';
 import CreateCategoryModal from '@/components/categories/create-category-modal';
 import FloatingActionButton from '@/components/ui/floating-action-button';
@@ -29,11 +30,13 @@ export default function Categories() {
     data: activities = [],
     isPending: isActivitiesPending,
     isError: isActivitiesError,
+    refetch: refetchActivities,
   } = useActivitiesQuery();
   const {
     data: categories = [],
     isPending: isCategoriesPending,
     isError: isCategoriesError,
+    refetch: refetchCategories,
   } = useCategoriesQuery();
   const editCategory = useEditCategoryMutation();
 
@@ -109,7 +112,15 @@ export default function Categories() {
   }
 
   if (isActivitiesError || isCategoriesError) {
-    return <LoaderScreen text="Unable to load categories." />;
+    return (
+      <ErrorScreen
+        message="Unable to load categories."
+        onRetry={() => {
+          void refetchActivities();
+          void refetchCategories();
+        }}
+      />
+    );
   }
 
   return (

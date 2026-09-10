@@ -84,7 +84,10 @@ export default function RegisterScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <Background />
         <View style={styles.formContainer}>
           <ThemedText style={styles.title} type="title">
@@ -102,6 +105,7 @@ export default function RegisterScreen() {
                 value={field.value}
                 onChangeText={field.onChange}
                 autoCapitalize="none"
+                autoComplete="email"
                 keyboardType="email-address"
                 errorMessage={fieldState.error?.message}
                 editable={!isLoading && !socialLoading}
@@ -121,6 +125,7 @@ export default function RegisterScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 secureTextEntry
+                autoComplete="new-password"
                 textContentType="password"
                 errorMessage={fieldState.error?.message}
                 editable={!isLoading && !socialLoading}
@@ -140,6 +145,7 @@ export default function RegisterScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 secureTextEntry
+                autoComplete="new-password"
                 textContentType="password"
                 errorMessage={fieldState.error?.message}
                 editable={!isLoading && !socialLoading}

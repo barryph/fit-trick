@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, ViewStyle } from 'react-native';
+import { View, type DimensionValue, type ViewStyle } from 'react-native';
 import Skeleton from './skeleton';
 
 interface TextSkeletonProps {
   lines?: number;
-  lastLineWidth?: string;
+  lastLineWidth?: DimensionValue;
   lineHeight?: number;
   spacing?: number;
   style?: ViewStyle;

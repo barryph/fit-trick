@@ -1,9 +1,14 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, ViewStyle } from 'react-native';
+import {
+  Animated,
+  StyleSheet,
+  type DimensionValue,
+  type ViewStyle,
+} from 'react-native';
 
 interface SkeletonProps {
-  width?: number;
-  height?: number;
+  width?: DimensionValue;
+  height?: DimensionValue;
   borderRadius?: number;
   style?: ViewStyle;
 }

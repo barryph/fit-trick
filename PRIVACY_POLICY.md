@@ -1,11 +1,11 @@
 # Privacy Policy — Kadence
 
 > **Effective Date:** 2026/08/25
-> **Last Updated:** 2026/08/25
-> **Version:** 1.0
+> **Last Updated:** 2026/09/10
+> **Version:** 1.1
 
 **Kadence** (the "App") is a mobile exercise tracker and exercise activity
-queue provided by **Kadence** ("we", "our", or "us", "[Company Name]" as
+queue provided by **Code Complete Labs** ("we", "our", or "us", "Code Complete Labs" as
 legally established). This Privacy Policy explains what personal information
 we collect, why we collect it, how we use and share it, and the choices you
 have.
@@ -50,6 +50,17 @@ and improve the experience. We collect the categories described below.
   version, language and region settings, the pages/screens you open and how
   you interact with the App, and performance/log information. This is largely
   collected through analytics and crash-reporting tools (see Section 3).
+- **Device and advertising identifiers** — the App bundles Google Firebase
+  Analytics, which collects a mobile **advertising ID** (on Android this
+  requires the `com.google.android.gms.permission.AD_ID` permission), a
+  Firebase **app-instance ID**, and, where available, the **Play Install
+  Referrer** identifier that records how the App was installed. These are used
+  for measurement and install attribution, as described in Section 3. We do
+  **not** use them for personalised or cross-context behavioural advertising,
+  and we do not share them with advertising networks. You can delete or reset
+  the advertising ID, and opt out of ads personalisation, in your device
+  settings (on Android: **Settings → Privacy → Ads**). Deleting it does not
+  affect your account or your exercise data.
 - **IP address and network information** — your IP address may be collected
   automatically as part of normal network/security logging when the App
   connects to our servers.
@@ -60,11 +71,15 @@ and improve the experience. We collect the categories described below.
 
 > **Note on generic checklist items:** generic privacy templates often list
 > "IP addresses", "cookies", "payment details", and "advertising". For Kadence
-> specifically: we **do not** sell your data, we do **not** advertise within
-> or from the App, and we do **not** process credit-card or other payment card
+> specifically: we **do not** sell your data, we **do not** display or serve
+> advertising in or from the App, we **do not** use your data (including any
+> advertising ID) to build advertising profiles or for personalised
+> advertising, and we **do not** process credit-card or other payment card
 > details. We **do** use a strictly necessary session cookie for
-> authentication (see Section 1.2 above and Section 3). Please read Sections 3
-> and 4 below for how "cookies / tracking" and "advertising" apply to Kadence.
+> authentication, and the bundled analytics SDK **does** read a device
+> advertising identifier for measurement (see Section 1.2 above and
+> Section 3). Please read Sections 3 and 4 below for how "cookies / tracking"
+> and "advertising" apply to Kadence.
 
 ---
 
@@ -94,8 +109,9 @@ We use the information we collect for the following purposes:
   process, enforceable governmental requests, or to establish, exercise, or
   defend legal claims.
 
-We **do not** sell your personal information, and we do not use it for targeted
-advertising.
+We **do not** sell your personal information, and we do not use it — including
+any device or advertising identifier — for targeted or cross-context
+behavioural advertising.
 
 ---
 
@@ -108,7 +124,7 @@ on its own legitimate or direct need, its own privacy policy also applies.
 
 | Service | What it does | Data it may process |
 |---|---|---|
-| **Google Firebase — Analytics** (`@react-native-firebase/analytics`) | App and event analytics; aggregated usage reports | usage events, device and app-version information, anonymised/session identifiers |
+| **Google Firebase — Analytics** (`@react-native-firebase/analytics`) | App and event analytics; aggregated usage reports; install attribution | usage events, device and app-version information, Firebase app-instance ID, Android **advertising ID**, and the Play Install Referrer identifier (see Section 1.2) |
 | **Google Firebase — Crashlytics** (`@react-native-firebase/crashlytics`) | Crash reporting and diagnostics | crash logs, stack traces, limited device model / OS / app-version information |
 | **Google Sign-In / Google OAuth** | Login with your Google account | only the OIDC `email`/`profile` scopes — your Google email and a subject identifier; we do not request further Google API access |
 | **Apple Sign-In** (iOS) | Login with your Apple ID | Your Apple account email or a hidden relay email and an Apple identifier |
@@ -123,8 +139,13 @@ premium tier, we will use a PCI-DSS-compliant third-party processor, update
 this Policy, and still not send payment card details to our servers.
 
 **Advertising networks:** Kadence does **not** display or serve third-party
-advertising in the App, and we do not share personal information with
-advertising networks.
+advertising in the App, we do not share personal information with advertising
+networks, and we do not use your data for personalised or cross-context
+behavioural advertising. The bundled Google Firebase Analytics SDK does access
+the Android advertising ID for aggregate measurement and install attribution
+(see Section 1.2). Google processes that data on our behalf under contract and
+under its own privacy terms, and you can delete or reset the advertising ID in
+your device settings at any time.
 
 **Cookies and similar technology:** Kadence uses a few cookies and similar
 technologies for specific, limited purposes:
@@ -139,9 +160,12 @@ technologies for specific, limited purposes:
   is strictly necessary for authentication, so we do not require separate
   consent to set it under applicable rules.
 - **Analytics and crash reporting** — as noted in Section 3, the analytics
-  and crash-reporting tools use identifiers and similar technology to collect
-  aggregated usage information and crash diagnostics. These are not used to
-  target advertising.
+  and crash-reporting tools use identifiers and similar technology (including
+  the Android advertising ID, the Firebase app-instance ID, and the Play
+  Install Referrer) to collect aggregated usage information, install
+  attribution, and crash diagnostics. These are **not** used to target
+  advertising, and you can delete or reset the advertising ID in your device
+  settings.
 - **Local preferences** — the App stores non-sensitive preferences locally on
   your device (for example UI customisations) so they persist between
   sessions. This data stays on your device.

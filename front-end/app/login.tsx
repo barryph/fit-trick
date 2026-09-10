@@ -75,7 +75,10 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <Background />
         <View style={styles.formContainer}>
           <ThemedText style={styles.title} type="title">
@@ -94,6 +97,7 @@ export default function LoginScreen() {
                 value={field.value}
                 onChangeText={field.onChange}
                 autoCapitalize="none"
+                autoComplete="email"
                 keyboardType="email-address"
                 errorMessage={fieldState.error?.message}
                 editable={!isLoading && !socialLoading}
@@ -113,6 +117,7 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 secureTextEntry
+                autoComplete="current-password"
                 textContentType="password"
                 errorMessage={fieldState.error?.message}
                 editable={!isLoading && !socialLoading}
@@ -160,8 +165,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // TODO: Remove this test
-    backgroundColor: 'red',
   },
   scrollContent: {
     flexGrow: 1,

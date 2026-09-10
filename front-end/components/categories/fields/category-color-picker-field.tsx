@@ -38,7 +38,6 @@ export default function CategoryColorPickerField() {
           {/** Color picker **/}
           <ColorPicker
             onCompleteJS={({ hex }: ColorFormatsObject) => {
-              console.log('change', hex);
               field.onChange(hex);
             }}
             value={field.value}

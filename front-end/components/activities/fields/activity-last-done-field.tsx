@@ -41,7 +41,7 @@ export default function ActivityLastDoneField() {
               <ThemedText
                 style={field.value ? styles.dateValue : styles.datePlaceholder}
               >
-                {field.value ? YYYYMMDD(field.value) : '2026-07-09'}
+                {field.value ? YYYYMMDD(field.value) : 'Select a date'}
               </ThemedText>
             </Pressable>
 

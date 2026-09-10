@@ -15,7 +15,6 @@ export function unwrapApiResponse<T>(response: ApiResponse<T>): T {
     throw new ApiError(response.error);
   }
 
-  console.log('response:', response);
   if (response.data === undefined) {
     throw new ApiError({
       code: ErrorCode.GENERIC_ERROR,

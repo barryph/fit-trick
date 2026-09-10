@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import Background from '@/components/backgrounds/background';
 import LoaderScreen from '@/components/base/loader-screen';
+import ErrorScreen from '@/components/base/error-screen';
 import ListItemShell from '@/components/list-item-shell';
 import { ThemedText } from '@/components/base/themed-text';
 import GoalProgressBar from '@/components/goals/goal-progress-bar';
@@ -15,6 +16,7 @@ import { useStaleRefetchOnFocus } from '@/hooks/queries/use-stale-refetch-on-foc
 import { queryKeys } from '@/lib/query/keys';
 import { formatGoalProgress } from '@/lib/goals/goal-progress';
 import { YYYYMMDD } from '@/utils/date';
+import { goBackOrHome } from '@/lib/navigation/back';
 
 function isString(val: unknown): val is string {
   return typeof val === 'string';
@@ -28,6 +30,7 @@ export default function GoalInsightsScreen() {
     data: stats,
     isPending,
     isError,
+    refetch: refetchStats,
   } = useGoalStatsQuery(isString(activityId) ? activityId : undefined, today);
 
   // Refresh silently when returning to this screen with stale stats, e.g.
@@ -41,7 +44,12 @@ export default function GoalInsightsScreen() {
   }
 
   if (isError) {
-    return <LoaderScreen text="Unable to load goal insights." />;
+    return (
+      <ErrorScreen
+        message="Unable to load goal insights."
+        onRetry={() => void refetchStats()}
+      />
+    );
   }
 
   if (!stats) {
@@ -56,7 +64,7 @@ export default function GoalInsightsScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.topRow}>
-          <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Pressable onPress={() => goBackOrHome(router)} hitSlop={8}>
             <Ionicons name="arrow-back" size={27} color="white" />
           </Pressable>
           <ThemedText weight="700" size="regular">

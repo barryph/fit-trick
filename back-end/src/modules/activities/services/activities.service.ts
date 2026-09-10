@@ -42,9 +42,19 @@ export class ActivitiesService {
     private readonly activityGoalsRepo: ActivityGoalsRepo,
   ) {}
 
+  /**
+   * The calendar date the request is relative to.
+   *
+   * Clients send their own local date (`today`), and that value is used for
+   * every date calculation so results do not depend on the server's time zone.
+   * Falling back to the database's CURRENT_DATE keeps older clients working.
+   */
+  private async resolveToday(today?: string): Promise<string> {
+    return today ?? (await this.knexService.getCurrentDate());
+  }
+
   private async resolveGoalWeekRange(today?: string): Promise<GoalWeekRange> {
-    const resolvedToday = today ?? (await this.knexService.getCurrentDate());
-    return getGoalWeekRange(resolvedToday);
+    return getGoalWeekRange(await this.resolveToday(today));
   }
 
   async create(
@@ -115,10 +125,12 @@ export class ActivitiesService {
       );
     }
 
+    const resolvedToday = await this.resolveToday(today);
     return this.getActivityByIdQuery.execute(
       createdActivity.id,
       userId,
-      await this.resolveGoalWeekRange(today),
+      getGoalWeekRange(resolvedToday),
+      resolvedToday,
     );
   }
 
@@ -126,9 +138,11 @@ export class ActivitiesService {
     userId: string,
     today?: string,
   ): Promise<ActivityWithCategoryDTO[]> {
+    const resolvedToday = await this.resolveToday(today);
     return this.getActivitiesByUserIdQuery.execute(
       userId,
-      await this.resolveGoalWeekRange(today),
+      getGoalWeekRange(resolvedToday),
+      resolvedToday,
     );
   }
 
@@ -137,10 +151,12 @@ export class ActivitiesService {
     userId: string,
     today?: string,
   ): Promise<ActivityWithCategoryDTO> {
+    const resolvedToday = await this.resolveToday(today);
     return this.getActivityByIdQuery.execute(
       activityId,
       userId,
-      await this.resolveGoalWeekRange(today),
+      getGoalWeekRange(resolvedToday),
+      resolvedToday,
     );
   }
 
@@ -212,10 +228,12 @@ export class ActivitiesService {
       await this.activitiesRepo.update(activity);
     }
 
+    const resolvedToday = await this.resolveToday(today);
     return this.getActivityByIdQuery.execute(
       activityId,
       userId,
-      await this.resolveGoalWeekRange(today),
+      getGoalWeekRange(resolvedToday),
+      resolvedToday,
     );
   }
 
@@ -248,10 +266,12 @@ export class ActivitiesService {
       throw error;
     }
 
+    const resolvedToday = await this.resolveToday(today);
     const updatedActivity = await this.getActivityByIdQuery.execute(
       activityId,
       userId,
-      await this.resolveGoalWeekRange(today),
+      getGoalWeekRange(resolvedToday),
+      resolvedToday,
     );
     if (!updatedActivity) {
       throw new Error('Activity not found after completing it');
@@ -275,10 +295,12 @@ export class ActivitiesService {
 
     await this.activityEventRepo.removeByActivityIdAndDate(activityId, date);
 
+    const resolvedToday = await this.resolveToday(today);
     const updatedActivity = await this.getActivityByIdQuery.execute(
       activityId,
       userId,
-      await this.resolveGoalWeekRange(today),
+      getGoalWeekRange(resolvedToday),
+      resolvedToday,
     );
     if (!updatedActivity) {
       throw new Error('Activity not found after undoing completion');

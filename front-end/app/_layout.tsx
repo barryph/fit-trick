@@ -3,7 +3,7 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from '@react-navigation/native';
-import { SplashScreen } from 'expo-router';
+import { ErrorBoundaryProps, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { StyleSheet, View } from 'react-native';
@@ -16,7 +16,7 @@ import {
   IBMPlexMono_700Bold,
   useFonts,
 } from '@expo-google-fonts/ibm-plex-mono';
-import Toast from 'react-native-toast-message';
+import Toast, { type ToastConfig } from 'react-native-toast-message';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider } from '@/context/auth-context';
@@ -24,6 +24,7 @@ import { QueryProvider } from '@/lib/query/provider';
 import { RootLayoutNav } from '@/components/root-layout-nav';
 import Background from '@/components/backgrounds/background';
 import { ThemedText } from '@/components/base/themed-text';
+import Button from '@/components/base/button';
 import { Colors } from '@/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
@@ -36,19 +37,32 @@ import {
 SplashScreen.preventAutoHideAsync();
 
 /**
- * Logs all requests to the console
- * Helpful for debugging during preview/production app build debugging sessions
+ * Root error boundary.
+ *
+ * expo-router only installs a boundary for a route that exports one, so
+ * without this any render-time throw left the user on a blank screen with no
+ * way to recover. It sits above the app's providers, so it deliberately uses
+ * only context-free components.
  */
-// global._fetch = fetch;
-// global.fetch = function (uri, options, ...args) {
-//   return global._fetch(uri, options, ...args).then((response) => {
-//     console.log('Fetch:', '\n', { request: { uri, options, ...args } }, '\n', {
-//       response,
-//     });
-//     //console.log('Fetch Response', { response });
-//     return response;
-//   });
-// };
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return (
+    <View style={styles.errorContainer}>
+      <Background />
+      <View style={styles.errorContent}>
+        <Ionicons name="alert-circle-outline" size={36} color="#d8ecff" />
+        <ThemedText type="subtitle" style={styles.errorTitle}>
+          Something went wrong
+        </ThemedText>
+        <ThemedText size="small" style={styles.errorMessage}>
+          {error.message}
+        </ThemedText>
+        <Button onPress={retry} style={styles.errorRetry}>
+          Try again
+        </Button>
+      </View>
+    </View>
+  );
+}
 
 function FontsProvider({ children }: { children: React.ReactNode }) {
   const [loaded, error] = useFonts({
@@ -95,13 +109,12 @@ export default function RootLayout() {
       (Constants.expoConfig?.extra as { appVariant?: string } | undefined)
         ?.appVariant ?? 'production';
     const crashlyticsEnabled = variant !== 'development';
-    console.log('crashlyticsEnabled', crashlyticsEnabled);
 
     setCrashlyticsCollectionEnabled(crashlyticsEnabled);
     setCrashlyticsCustomKey('app_variant', variant);
   }, []);
 
-  const toastConfig = {
+  const toastConfig: ToastConfig = {
     // success: (props) => <BaseToast {...props} style={{ background: 'red' }} />,
     success: ({ text1 }) => (
       <View
@@ -145,9 +158,35 @@ export default function RootLayout() {
               </AuthProvider>
             </QueryProvider>
           </FontsProvider>
-          <StatusBar style="auto" />
+          {/* The app is dark-only (see userInterfaceStyle in app.json), so the
+              bar style is pinned rather than derived from the device theme. */}
+          <StatusBar style="light" />
         </BottomSheetModalProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  errorContainer: {
+    flex: 1,
+  },
+  errorContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  errorTitle: {
+    marginTop: 4,
+  },
+  errorMessage: {
+    textAlign: 'center',
+    opacity: 0.85,
+  },
+  errorRetry: {
+    marginTop: 8,
+    maxWidth: 220,
+  },
+});

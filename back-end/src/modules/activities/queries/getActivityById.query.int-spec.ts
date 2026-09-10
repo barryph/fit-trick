@@ -8,6 +8,12 @@ import { insertUserWithKnex } from '../../../../test/factories/user.factory';
 import { insertActivity } from '../../../../test/factories/activity.factory';
 import { insertActivityEvent } from '../../../../test/factories/activity-event.factory';
 
+/**
+ * The query is anchored to the client's local date, so callers pass both the
+ * goal week range and `today` - the Mon-Sun week of `2026-08-03` contains it.
+ */
+const TODAY = '2026-08-05';
+
 describe('Activity queries (integration)', () => {
   let getActivityByIdQuery: GetActivityByIdQuery;
   let getActivityTimelineQuery: GetActivityTimelineQuery;
@@ -40,10 +46,12 @@ describe('Activity queries (integration)', () => {
     const activityId = activity.id as string;
 
     await expect(
-      getActivityByIdQuery.execute(activityId, otherId, {
-        from: '2026-08-03',
-        to: '2026-08-09',
-      }),
+      getActivityByIdQuery.execute(
+        activityId,
+        otherId,
+        { from: '2026-08-03', to: '2026-08-09' },
+        TODAY,
+      ),
     ).rejects.toThrow(UnauthorizedException);
   });
 

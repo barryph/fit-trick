@@ -19,11 +19,13 @@ export default function CategoryInsightsScreen() {
     data: categories = [],
     isPending: isCategoriesPending,
     isError: isCategoriesError,
+    refetch: refetchCategories,
   } = useCategoriesQuery();
   const {
     data: events = [],
     isPending: isEventsPending,
     isError: isEventsError,
+    refetch: refetchEvents,
   } = useActivityEventsQuery(weekRange.from, weekRange.to);
 
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
@@ -76,6 +78,10 @@ export default function CategoryInsightsScreen() {
       isLoading={isCategoriesPending || isEventsPending}
       isError={isCategoriesError || isEventsError}
       errorMessage="Unable to load category insights."
+      onRetry={() => {
+        void refetchCategories();
+        void refetchEvents();
+      }}
       hasActivity={hasActivity}
       noItemsMessage="Add categories to start tracking completion trends."
       noActivityMessage="No category completions in this period yet. Complete activities to see trends here."

@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View, Pressable } from 'react-native';
 import Background from '@/components/backgrounds/background';
 import Container from '@/components/base/container';
 import LoaderScreen from '@/components/base/loader-screen';
+import ErrorScreen from '@/components/base/error-screen';
 import { ThemedText } from '@/components/base/themed-text';
 import FilterList, {
   type FilterListItem,
@@ -13,6 +14,7 @@ import InsightsLineChartKit, {
 import ListItemShell from '@/components/list-item-shell';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
+import { goBackOrHome } from '@/lib/navigation/back';
 
 interface WeeklyInsightsScreenProps {
   title: string;
@@ -26,6 +28,8 @@ interface WeeklyInsightsScreenProps {
   isLoading: boolean;
   isError: boolean;
   errorMessage: string;
+  /** Retries the failed request. */
+  onRetry?: () => void;
   hasActivity: boolean;
   noItemsMessage: string;
   noActivityMessage: string;
@@ -44,6 +48,7 @@ export default function WeeklyInsightsScreen({
   isLoading,
   isError,
   errorMessage,
+  onRetry,
   hasActivity,
   noItemsMessage,
   noActivityMessage,
@@ -56,7 +61,7 @@ export default function WeeklyInsightsScreen({
   }
 
   if (isError) {
-    return <LoaderScreen text={errorMessage} />;
+    return <ErrorScreen message={errorMessage} onRetry={onRetry} />;
   }
 
   const showNoItems = filterItems.length === 0;
@@ -69,7 +74,7 @@ export default function WeeklyInsightsScreen({
       <ScrollView>
         <Container style={styles.scrollContent}>
           <View style={styles.titleRow}>
-            <Pressable onPress={() => router.back()}>
+            <Pressable onPress={() => goBackOrHome(router)}>
               <Ionicons name="arrow-back" size={27} color="white" />
             </Pressable>
             <ThemedText type="title" size="medium">

@@ -17,6 +17,7 @@ class ErrorMapper {
     ACCOUNT_NOT_FOUND: 'This account no longer exists.',
     PROVIDER_REVOCATION_FAILED:
       "We couldn't disconnect your account from its provider. Nothing was deleted. Please try again.",
+    UNAUTHORIZED: 'Your session has expired. Please sign in again.',
 
     // Social authentication (client-side mapped, never from the backend)
     SOCIAL_AUTH_CANCELLED: 'Sign in was cancelled.',
@@ -28,13 +29,24 @@ class ErrorMapper {
     NETWORK_ERROR: 'Something went wrong, please try again.',
   };
 
-  mapError(serverError: ServerError): AppError {
+  mapError(serverError: ServerError, httpStatus?: number): AppError {
     const message = this.errorMap[serverError.code as TErrorCode];
 
     if (message) {
       return {
         code: serverError.code as TErrorCode,
         message,
+      };
+    }
+
+    // The API reports an expired or absent session as a bare 401 with no error
+    // code (AllExceptionsFilter's HttpException branch omits it), so a signed-out
+    // session would otherwise be downgraded to a generic error and the app would
+    // never learn that it is no longer authenticated.
+    if (httpStatus === 401) {
+      return {
+        code: ErrorCode.UNAUTHORIZED,
+        message: this.errorMap.UNAUTHORIZED,
       };
     }
 
