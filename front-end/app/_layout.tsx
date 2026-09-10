@@ -49,7 +49,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
     <View style={styles.errorContainer}>
       <Background />
       <View style={styles.errorContent}>
-        <Ionicons name="alert-circle-outline" size={30} color="#d8ecff" />
+        <Ionicons name="alert-circle-outline" size={36} color="#d8ecff" />
         <ThemedText type="subtitle" style={styles.errorTitle}>
           Something went wrong
         </ThemedText>
