@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "659821226552-23bdqfe96le0t8nssnobvblgl4f4pkq6.apps.googleusercontent.com",
+          "client_id": "659821226552-sharp2j4i6vv1vh7t3l1lqbtfvgs9nt9.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.codecompletelabs.kadence.dev",
-            "certificate_hash": "2b7e06d6993cc61911f0c1d703bc54bb9da03ce9"
+            "certificate_hash": "6c78e4ebce8ac820e6a62a4d8a66a596795042b5"
           }
         },
         {
