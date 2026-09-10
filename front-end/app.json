@@ -5,8 +5,9 @@
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/images/icon-default.png",
-    "scheme": "myexpoapp",
-    "userInterfaceStyle": "automatic",
+    "scheme": "kadence",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#050711",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,

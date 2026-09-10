@@ -145,7 +145,9 @@ export default function RootLayout() {
               </AuthProvider>
             </QueryProvider>
           </FontsProvider>
-          <StatusBar style="auto" />
+          {/* The app is dark-only (see userInterfaceStyle in app.json), so the
+              bar style is pinned rather than derived from the device theme. */}
+          <StatusBar style="light" />
         </BottomSheetModalProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
