@@ -5,7 +5,7 @@
 > **Version:** 1.1
 
 **Kadence** (the "App") is a mobile exercise tracker and exercise activity
-queue provided by **Kadence** ("we", "our", or "us", "[Company Name]" as
+queue provided by **Code Complete Labs** ("we", "our", or "us", "Code Complete Labs" as
 legally established). This Privacy Policy explains what personal information
 we collect, why we collect it, how we use and share it, and the choices you
 have.
