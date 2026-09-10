@@ -152,7 +152,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * on failure so the UI can surface the reason; the account is left intact.
    */
   async function deleteAccount(): Promise<void> {
-    console.log('is google linked:', await isGoogleLinked());
+    // Resolved once: the lookup is a network round-trip against an endpoint the
+    // deletion path then re-reads, and this runs immediately before an
+    // irreversible action.
     if (await isGoogleLinked()) {
       try {
         await revokeGoogleAccess();
@@ -187,7 +189,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   async function isGoogleLinked(): Promise<boolean> {
     try {
       const current = await usersAPI.getCurrentUser();
-      console.log('authProviders', current.data?.authProviders);
       return current.data?.authProviders.includes('google') ?? false;
     } catch (err) {
       console.error('Error fetching account providers before deletion', err);
@@ -262,7 +263,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         credential = await provider();
       } catch (err) {
-        console.log('Failed trying to call provider:', err);
         return mapSocialAuthError(err);
       }
 

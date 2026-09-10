@@ -13,8 +13,7 @@ interface IProps {
   onRetry?: () => void;
 }
 
-const OFFLINE_MESSAGE =
-  "You're offline. Check your connection and try again.";
+const OFFLINE_MESSAGE = "You're offline. Check your connection and try again.";
 
 /**
  * Terminal state for a screen whose data could not be loaded.

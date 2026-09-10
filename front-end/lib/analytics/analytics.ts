@@ -61,7 +61,6 @@ export function logEvent(
   const analytics = getInstance();
   if (!analytics) return;
   try {
-    console.log('loggin event', event, params);
     rnfbLogEvent(analytics, event, params);
   } catch (e) {
     // Analytics must never crash the app, even mid-render.
