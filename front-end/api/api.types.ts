@@ -32,9 +32,14 @@ export const ErrorCode = {
 
   /**
    * The session is gone (cookie expired, revoked, or never sent). Distinct from
-   * INVALID_CREDENTIALS, which means a sign-in attempt was rejected.
+   * INVALID_CREDENTIALS, which means a sign-in attempt was rejected. Used for
+   * the bare 401 the API sends when a request carries no usable session.
    */
   UNAUTHORIZED: 'UNAUTHORIZED',
+  // The server ended the session (idle/absolute expiry, sign-out elsewhere, or
+  // revocation after a password reset). Distinct from a bare 401 so the app can
+  // clear local state and say why the user is signed out.
+  SESSION_EXPIRED: 'SESSION_EXPIRED',
 
   // Social authentication (client-side, not from the backend)
   SOCIAL_AUTH_CANCELLED: 'SOCIAL_AUTH_CANCELLED',

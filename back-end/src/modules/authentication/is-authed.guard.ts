@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
+import { SessionExpiredError } from './authentication.errors';
 
 type AuthenticatedRequest = Request & {
   isAuthenticated(): boolean;
@@ -28,6 +29,14 @@ export class IsAuthedGuard implements CanActivate {
     if (request.isAuthenticated && request.isAuthenticated()) {
       return true;
     }
+
+    // A session that existed and has since expired or been revoked is reported
+    // separately, so the client can clear local state and explain the sign-out
+    // rather than surfacing a generic error.
+    if (request.sessionEnded) {
+      throw new SessionExpiredError();
+    }
+
     throw new UnauthorizedException('Not authenticated');
   }
 }

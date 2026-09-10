@@ -27,6 +27,17 @@ describe('errorMapper', () => {
     expect(result.message).toBe('Reset token is invalid or expired');
   });
 
+  it('maps SESSION_EXPIRED to a sign-in-again message', () => {
+    const result = errorMapper.mapError({
+      code: ErrorCode.SESSION_EXPIRED,
+      message: 'Your session has ended. Please sign in again.',
+    });
+    expect(result.code).toBe(ErrorCode.SESSION_EXPIRED);
+    expect(result.message).toBe(
+      'Your session has ended. Please sign in again.',
+    );
+  });
+
   it('falls back to server message for unknown error codes', () => {
     const result = errorMapper.mapError({
       code: 'UNKNOWN_CODE',

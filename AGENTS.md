@@ -21,7 +21,7 @@ Personal habit tracker: `back-end/` (NestJS 11 API + PostgreSQL) and `front-end/
 * Full check: `pnpm run typecheck && pnpm run lint:check && pnpm run test:unit` (runs in seconds, no DB).
 * `pnpm run test:integration` and `pnpm run test:e2e` **require Docker** — Testcontainers boots a disposable Postgres 16 container, runs migrations, and truncates tables before every test. If an interrupted run leaves `test/.test-env.json`, delete it and re-run.
 * Test naming convention matters — configs match on suffixes: unit `*.spec.ts`, integration `*.int-spec.ts` (both colocated under `src/`), E2E `*.e2e-spec.ts` under `test/e2e/`. Details and factories: `back-end/TESTING.md`.
-* `pnpm run lint` auto-fixes; CI uses the non-fixing `pnpm run lint:check`. OAuth (Google/Apple) architecture and local testing overrides: `back-end/docs/oauth-sign-in.md`.
+* `pnpm run lint` auto-fixes; CI uses the non-fixing `pnpm run lint:check`. OAuth (Google/Apple) architecture and local testing overrides: `back-end/docs/oauth-sign-in.md`. Session lifetime (rolling renewal, idle/absolute expiry, `SESSION_EXPIRED`): `back-end/docs/session-management.md`.
 
 ## front-end/ — Expo app
 

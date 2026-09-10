@@ -11,11 +11,16 @@ import { configurePassport } from './modules/authentication/passport';
 import { AuthenticationService } from './modules/authentication/services/authentication.service';
 import UsersRepo from './modules/users/repos/user.repository';
 import { KnexService } from './shared/knex/knex.service';
-
-// TODO: Implement "Sliding Expiry" - If the user is active and the cookie is more than halfway through its lifespan, silently issue a new cookie with a reset expiration window.
+import {
+  SESSION_POLICY,
+  type SessionPolicy,
+} from './modules/authentication/session/session-policy';
+import {
+  SESSION_COOKIE_NAME,
+  sessionCookieAttributes,
+} from './modules/authentication/session/session-cookie';
 
 const isRunningBehindReverseProxy = process.env.NODE_ENV === 'production';
-const ONE_HOUR_IN_MS = 1000 * 60 * 60;
 
 function parseCsv(value: string | undefined): string[] {
   return (value ?? '')
@@ -76,8 +81,10 @@ export function configureApp(app: INestApplication): void {
     throw new Error('env.SESSION_SECRET must be set');
   }
   const knexService = app.get(KnexService);
+  const sessionPolicy = app.get<SessionPolicy>(SESSION_POLICY);
   app.use(
     session({
+      name: SESSION_COOKIE_NAME,
       store: new ConnectSessionKnexStore({
         knex: knexService.connection,
         tableName: 'user_sessions',
@@ -90,10 +97,11 @@ export function configureApp(app: INestApplication): void {
       saveUninitialized: false,
       proxy: isRunningBehindReverseProxy,
       cookie: {
-        httpOnly: true,
-        sameSite: 'strict',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: ONE_HOUR_IN_MS * 24 * 14,
+        ...sessionCookieAttributes(),
+        // The idle window is the session's lifetime until the lifecycle guard
+        // re-grants it (rolling renewal). It must always be set: the store
+        // falls back to a one-day expiry for cookies without a Max-Age.
+        maxAge: sessionPolicy.idleTtlMs,
       },
     }),
   );

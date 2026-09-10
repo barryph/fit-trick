@@ -20,7 +20,7 @@ import {
 } from '@/lib/auth/google';
 import { signInWithApple as appleSignInClient } from '@/lib/auth/apple';
 import { isSocialAuthError } from '@/lib/auth/errors';
-import { setSessionExpiredHandler } from '@/lib/auth/session-expiry';
+import { onSessionExpired } from '@/lib/auth/session-expiry';
 import { removeItem } from '@/lib/storage/client';
 import { storageKeys } from '@/lib/storage/keys';
 import {
@@ -73,6 +73,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // value without being re-registered on every auth state change.
   const isAuthenticatedRef = useRef(isAuthenticated);
   isAuthenticatedRef.current = isAuthenticated;
+  // Latest user, readable from the session-expiry listener without
+  // re-subscribing on every auth state change.
+  const userRef = useRef<IUser | null>(null);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     async function fetchUser() {
@@ -93,20 +100,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   /**
-   * A 401 on any request means the session cookie is gone (it expires after 14
-   * days, and there is no renewal). Without this the app kept rendering its
-   * error states while still believing it was signed in, and never offered a
-   * way back to the login screen.
+   * The server can end a session while the app is running: it expired, it was
+   * signed out on another device, or a password reset revoked it — and a bare
+   * 401 (no usable session presented at all) is reported the same way. The
+   * credential is already dead, so clear local state and let the navigation
+   * guard send the user back to sign-in. The `isAuthenticated` guard keeps the
+   * boot-time `getCurrentUser` 401 from disturbing a fresh, signed-out launch.
    */
   useEffect(() => {
-    setSessionExpiredHandler(() => {
+    return onSessionExpired(() => {
       if (!isAuthenticatedRef.current) return;
-      setUser(null);
-      setIsAuthenticated(false);
-      queryClient.clear();
+      clearLocalAccountState(userRef.current);
     });
-
-    return () => setSessionExpiredHandler(null);
   }, []);
 
   async function login(
@@ -170,13 +175,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (response.error) {
       // The account is already gone: treat as success (idempotent deletion).
       if (response.error.code === ErrorCode.ACCOUNT_NOT_FOUND) {
-        clearLocalAccountState();
+        clearLocalAccountState(user);
         return;
       }
       throw new ApiError(response.error);
     }
 
-    clearLocalAccountState();
+    clearLocalAccountState(user);
   }
 
   /**
@@ -196,9 +201,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  function clearLocalAccountState() {
-    if (user) {
-      void removeItem(storageKeys.activityQueue(user.id));
+  function clearLocalAccountState(account: IUser | null) {
+    if (account) {
+      void removeItem(storageKeys.activityQueue(account.id));
     }
     setUser(null);
     setIsAuthenticated(false);

@@ -27,6 +27,11 @@ import { SocialAuthService } from './services/social-auth.service';
 import { InvalidCredentialsError } from './authentication.errors';
 import ServerError from 'src/shared/ServerError';
 import { IsAuthedGuard } from './is-authed.guard';
+import { createSessionAnchor } from './session/session-policy';
+import {
+  SESSION_COOKIE_NAME,
+  sessionCookieAttributes,
+} from './session/session-cookie';
 
 @Controller('auth')
 export class AuthenticationController {
@@ -42,6 +47,10 @@ export class AuthenticationController {
    * Establishes an authenticated session for the given user, regenerating the
    * session ID first to prevent session fixation. Identical to the flow used
    * for email/password login so the resulting session is indistinguishable.
+   *
+   * The session is also anchored here: `createdAt` starts the absolute session
+   * lifetime (the cap that rolling renewal may never extend past) and
+   * `renewedAt` starts the first idle window. Both are server timestamps.
    */
   private establishSession(
     req: Request,
@@ -58,6 +67,7 @@ export class AuthenticationController {
             new ServerError('SESSION_LOGIN_ERROR', 'Session login error'),
           );
         }
+        req.session.auth = createSessionAnchor();
         return res.send({ data: { user } });
       });
     });
@@ -113,7 +123,7 @@ export class AuthenticationController {
       }
       req.session.destroy((destroyError) => {
         if (destroyError) return next(destroyError);
-        res.clearCookie('connect.sid');
+        res.clearCookie(SESSION_COOKIE_NAME, sessionCookieAttributes());
         res.sendStatus(200);
       });
     });
@@ -241,7 +251,7 @@ export class AuthenticationController {
     } catch (err) {
       this.logger.error('Error destroying session after account deletion', err);
     }
-    res.clearCookie('connect.sid');
+    res.clearCookie(SESSION_COOKIE_NAME, sessionCookieAttributes());
     res.send({ data: { message: 'Account deleted' } });
   }
 

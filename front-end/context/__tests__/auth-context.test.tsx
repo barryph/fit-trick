@@ -6,6 +6,7 @@ import { usersAPI } from '@/api/api.users';
 import { authAPI } from '@/api/api.auth';
 import { testUser } from '@/test/setup/fixtures/users';
 import { SocialAuthError } from '@/lib/auth/errors';
+import { notifySessionExpired } from '@/lib/auth/session-expiry';
 
 jest.mock('@/api/api.users');
 jest.mock('@/api/api.auth');
@@ -454,6 +455,30 @@ describe('AuthProvider account deletion', () => {
     });
 
     expect(await screen.findByText('logged out')).toBeTruthy();
+  });
+
+  it('clears auth state when the server reports the session ended', async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      data: { user: testUser, authProviders: [] },
+    });
+
+    await render(
+      <AuthProvider>
+        <AuthConsumer />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(testUser.email)).toBeTruthy();
+    });
+
+    // e.g. the session expired while the app was backgrounded, or it was
+    // revoked by a password reset on another device.
+    await act(async () => {
+      notifySessionExpired();
+    });
+
+    expect(await screen.findByText('Not authenticated')).toBeTruthy();
   });
 
   it('propagates errors and keeps the user signed in when deletion fails', async () => {

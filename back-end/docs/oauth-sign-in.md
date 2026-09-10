@@ -226,6 +226,10 @@ identity model supports it, and it must always require an authenticated session.
 - Sessions remain server-side (`user_sessions`) with `HttpOnly`,
   `SameSite=strict`, `Secure` in production, and regeneration after
   authentication.
+- The session a provider sign-in establishes is identical to the
+  email/password one, including its rolling-renewal bookkeeping (idle window
+  refreshed on activity, absolute cap anchored at sign-in). See
+  `docs/session-management.md`.
 
 ---
 

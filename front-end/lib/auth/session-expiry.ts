@@ -1,26 +1,32 @@
-/**
- * One-slot registry connecting the API layer to the auth layer.
- *
- * The API client is the only place that sees an HTTP 401, but only the auth
- * provider can clear a session. Registering a callback here avoids a circular
- * import between them and keeps the client unaware of React.
- *
- * The handler is only invoked for a 401 that the server did not label with a
- * known error code, i.e. an expired/absent session rather than a rejected
- * credential (a failed sign-in carries `INVALID_CREDENTIALS`).
- */
 type SessionExpiredListener = () => void;
 
-let listener: SessionExpiredListener | null = null;
+const listeners = new Set<SessionExpiredListener>();
 
-/** Registers (or, with `null`, clears) the session-expiry handler. */
-export function setSessionExpiredHandler(
-  next: SessionExpiredListener | null,
-): void {
-  listener = next;
+/**
+ * Signals that the API ended the current session mid-use: the session expired
+ * (idle or absolute lifetime), or it was revoked — signed out on another
+ * device, or invalidated by a password reset. A bare 401 that the server did
+ * not label with an error code (no usable session presented at all) is treated
+ * the same way, so a client that believes it is signed in is corrected.
+ *
+ * The credential is already dead server-side, so every further request from
+ * this device will fail until the user signs in again. `AuthProvider`
+ * subscribes and drops the local session state so the user lands back on the
+ * sign-in screen instead of seeing repeated generic errors.
+ *
+ * Safe to call more than once: several in-flight requests failing together
+ * simply notify again, and listeners are expected to be idempotent.
+ */
+export function notifySessionExpired(): void {
+  for (const listener of [...listeners]) {
+    listener();
+  }
 }
 
-/** Called by the API client whenever a session-ending 401 is received. */
-export function notifySessionExpired(): void {
-  listener?.();
+/** Subscribes to session-end notifications. Returns an unsubscribe function. */
+export function onSessionExpired(listener: SessionExpiredListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }

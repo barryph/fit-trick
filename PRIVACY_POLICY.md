@@ -155,10 +155,13 @@ technologies for specific, limited purposes:
   requests. The matching session data is stored securely on our servers (in a
   `user_sessions` table) rather than in the cookie itself. The cookie is
   `secure` (sent only over HTTPS), set with `SameSite=Strict`, and is cleared
-  when your session expires (up to 14 days) or when you sign out or delete
-  your account. You can sign out at any time to end the session. This cookie
-  is strictly necessary for authentication, so we do not require separate
-  consent to set it under applicable rules.
+  when your session expires or when you sign out or delete your account. A
+  session ends after 14 days without activity, and in any case 60 days after
+  you signed in, even if you have been using the App every day. Using the App
+  extends the 14-day window, but never beyond that 60-day limit. You can sign
+  out at any time to end the session. This cookie is strictly necessary for
+  authentication, so we do not require separate consent to set it under
+  applicable rules.
 - **Analytics and crash reporting** — as noted in Section 3, the analytics
   and crash-reporting tools use identifiers and similar technology (including
   the Android advertising ID, the Firebase app-instance ID, and the Play
