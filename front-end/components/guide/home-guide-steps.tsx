@@ -89,7 +89,7 @@ export const HOME_GUIDE_STEPS: GuideStep[] = [
   },
   {
     title: "That's it!",
-    description: 'Jump in and get started. I hope you enjoy my app!',
+    description: 'Jump in and get started. I hope you enjoy the app!',
     media: (
       <GuideMediaIcon
         accent="#087cff"

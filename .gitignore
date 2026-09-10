@@ -1,4 +1,7 @@
 .aider*
 
 # git worktrees
-./worktrees
+worktrees/
+
+# pnpm
+.pnpm-store
