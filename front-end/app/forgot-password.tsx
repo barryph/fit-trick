@@ -53,7 +53,10 @@ export default function ForgotPasswordScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <Background />
         <View style={styles.formContainer}>
           <ThemedText style={styles.title} type="title">
@@ -73,6 +76,7 @@ export default function ForgotPasswordScreen() {
                 value={field.value}
                 onChangeText={field.onChange}
                 autoCapitalize="none"
+                autoComplete="email"
                 keyboardType="email-address"
                 errorMessage={fieldState.error?.message}
                 editable={!isLoading && !successMessage}

@@ -65,7 +65,10 @@ export default function ResetPasswordScreen() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
           <Background />
           <View style={styles.formContainer}>
             <ThemedText style={styles.title} type="title">
@@ -88,7 +91,10 @@ export default function ResetPasswordScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <Background />
         <View style={styles.formContainer}>
           <ThemedText style={styles.title} type="title">
@@ -109,6 +115,7 @@ export default function ResetPasswordScreen() {
                 secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="new-password"
                 textContentType="newPassword"
                 errorMessage={fieldState.error?.message}
                 editable={!isLoading}
