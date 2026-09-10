@@ -20,11 +20,13 @@ export default function ActivityInsightsScreen() {
     data: activities = [],
     isPending: isActivitiesPending,
     isError: isActivitiesError,
+    refetch: refetchActivities,
   } = useActivitiesQuery();
   const {
     data: events = [],
     isPending: isEventsPending,
     isError: isEventsError,
+    refetch: refetchEvents,
   } = useActivityEventsQuery(weekRange.from, weekRange.to);
 
   const [activeActivityId, setActiveActivityId] = useState<number | null>(null);
@@ -75,6 +77,10 @@ export default function ActivityInsightsScreen() {
       isLoading={isActivitiesPending || isEventsPending}
       isError={isActivitiesError || isEventsError}
       errorMessage="Unable to load activity insights."
+      onRetry={() => {
+        void refetchActivities();
+        void refetchEvents();
+      }}
       hasActivity={hasActivity}
       noItemsMessage="Add activities to start tracking completion trends."
       noActivityMessage="No activity completions in this period yet. Complete activities to see trends here."

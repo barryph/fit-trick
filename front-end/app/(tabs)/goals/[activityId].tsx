@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import Background from '@/components/backgrounds/background';
 import LoaderScreen from '@/components/base/loader-screen';
+import ErrorScreen from '@/components/base/error-screen';
 import ListItemShell from '@/components/list-item-shell';
 import { ThemedText } from '@/components/base/themed-text';
 import GoalProgressBar from '@/components/goals/goal-progress-bar';
@@ -28,6 +29,7 @@ export default function GoalInsightsScreen() {
     data: stats,
     isPending,
     isError,
+    refetch: refetchStats,
   } = useGoalStatsQuery(isString(activityId) ? activityId : undefined, today);
 
   // Refresh silently when returning to this screen with stale stats, e.g.
@@ -41,7 +43,12 @@ export default function GoalInsightsScreen() {
   }
 
   if (isError) {
-    return <LoaderScreen text="Unable to load goal insights." />;
+    return (
+      <ErrorScreen
+        message="Unable to load goal insights."
+        onRetry={() => void refetchStats()}
+      />
+    );
   }
 
   if (!stats) {

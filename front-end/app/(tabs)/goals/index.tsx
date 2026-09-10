@@ -6,6 +6,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Background from '@/components/backgrounds/background';
 import Container from '@/components/base/container';
 import LoaderScreen from '@/components/base/loader-screen';
+import ErrorScreen from '@/components/base/error-screen';
 import ListItemShell from '@/components/list-item-shell';
 import { ThemedText } from '@/components/base/themed-text';
 import GoalProgressBar from '@/components/goals/goal-progress-bar';
@@ -19,7 +20,12 @@ import ProgressBadge from '@/components/progress-badge';
 export default function GoalsScreen() {
   const router = useRouter();
   const today = YYYYMMDD();
-  const { data: goals = [], isPending, isError } = useGoalsQuery(today);
+  const {
+    data: goals = [],
+    isPending,
+    isError,
+    refetch: refetchGoals,
+  } = useGoalsQuery(today);
 
   // Refresh silently when returning to the tab with stale data, e.g. after an
   // activity was completed on another screen. Fresh data is not refetched.
@@ -30,7 +36,12 @@ export default function GoalsScreen() {
   }
 
   if (isError) {
-    return <LoaderScreen text="Unable to load goals." />;
+    return (
+      <ErrorScreen
+        message="Unable to load goals."
+        onRetry={() => void refetchGoals()}
+      />
+    );
   }
 
   return (

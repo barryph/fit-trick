@@ -6,6 +6,7 @@ import Toast from 'react-native-toast-message';
 import { IActivityClient } from '@/api/api.activity';
 import { ThemedText } from '@/components/base/themed-text';
 import LoaderScreen from '@/components/base/loader-screen';
+import ErrorScreen from '@/components/base/error-screen';
 import Background from '@/components/backgrounds/background';
 import ActivityListItem from '@/components/activity-list/activity-list-item';
 import FloatingActionButton from '@/components/ui/floating-action-button';
@@ -94,11 +95,13 @@ function DashboardContent({ userId }: { userId: string }) {
     data: activities = [],
     isPending: isActivitiesPending,
     isError: isActivitiesError,
+    refetch: refetchActivities,
   } = useActivitiesQuery();
   const {
     data: categories = [],
     isPending: isCategoriesPending,
     isError: isCategoriesError,
+    refetch: refetchCategories,
   } = useCategoriesQuery();
   const currentMonth = getCurrentMonth();
   const { data: timeline } = useTimelineQuery(currentMonth);
@@ -218,7 +221,15 @@ function DashboardContent({ userId }: { userId: string }) {
   }
 
   if (isActivitiesError || isCategoriesError) {
-    return <LoaderScreen text="Unable to load activities." />;
+    return (
+      <ErrorScreen
+        message="Unable to load activities."
+        onRetry={() => {
+          void refetchActivities();
+          void refetchCategories();
+        }}
+      />
+    );
   }
 
   return (
