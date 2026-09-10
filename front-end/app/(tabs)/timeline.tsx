@@ -271,7 +271,7 @@ function TimelineScreen() {
    */
   async function handleCellClick(
     cellKey: string,
-    activityId: string,
+    activityId: number,
     dateKey: string,
     isCompleted: boolean,
   ) {

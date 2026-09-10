@@ -10,6 +10,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
     "test:watch": "jest --watch --runInBand",
     "test:maestro": "maestro test .maestro/flows/",

@@ -16,7 +16,7 @@ import {
   IBMPlexMono_700Bold,
   useFonts,
 } from '@expo-google-fonts/ibm-plex-mono';
-import Toast from 'react-native-toast-message';
+import Toast, { type ToastConfig } from 'react-native-toast-message';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider } from '@/context/auth-context';
@@ -114,7 +114,7 @@ export default function RootLayout() {
     setCrashlyticsCustomKey('app_variant', variant);
   }, []);
 
-  const toastConfig = {
+  const toastConfig: ToastConfig = {
     // success: (props) => <BaseToast {...props} style={{ background: 'red' }} />,
     success: ({ text1 }) => (
       <View

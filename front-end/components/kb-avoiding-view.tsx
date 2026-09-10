@@ -27,7 +27,6 @@ import {
   KeyboardEvent,
   LayoutChangeEvent,
   LayoutRectangle,
-  ScreenRect,
 } from 'react-native';
 
 /**
@@ -47,7 +46,7 @@ type State = {
 };
 
 class KBAvoidingView extends Component<Props, State> {
-  viewRef: RefObject<View>;
+  viewRef: RefObject<View | null>;
 
   static defaultProps = {
     children: null,
@@ -86,7 +85,7 @@ class KBAvoidingView extends Component<Props, State> {
   _subscriptions: EmitterSubscription[] = [];
   _initialFrameHeight = 0;
 
-  _relativeKeyboardHeight = (keyboardFrame: ScreenRect) => {
+  _relativeKeyboardHeight = (keyboardFrame: { screenY: number }) => {
     const frame = this._frame;
     if (!frame || !keyboardFrame) {
       return 0;
