@@ -36,6 +36,27 @@ describe('errorMapper', () => {
     expect(result.message).toBe('Something specific happened');
   });
 
+  it('maps an unlabelled 401 to UNAUTHORIZED', () => {
+    // The API reports an expired session as a bare 401 with no error code
+    // (AllExceptionsFilter omits it for HttpException responses).
+    const result = errorMapper.mapError(
+      { code: '', message: 'Not authenticated' },
+      401,
+    );
+    expect(result.code).toBe(ErrorCode.UNAUTHORIZED);
+    expect(result.message).toBe('Your session has expired. Please sign in again.');
+  });
+
+  it('keeps a labelled 401 as the credential error it is', () => {
+    // A rejected sign-in also returns 401; it must not be reported as an
+    // expired session.
+    const result = errorMapper.mapError(
+      { code: ErrorCode.INVALID_CREDENTIALS, message: 'Bad credentials' },
+      401,
+    );
+    expect(result.code).toBe(ErrorCode.INVALID_CREDENTIALS);
+  });
+
   it('falls back to generic message when server message is empty', () => {
     const result = errorMapper.mapError({
       code: 'UNKNOWN_CODE',

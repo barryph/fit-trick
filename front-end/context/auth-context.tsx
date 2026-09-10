@@ -20,6 +20,7 @@ import {
 } from '@/lib/auth/google';
 import { signInWithApple as appleSignInClient } from '@/lib/auth/apple';
 import { isSocialAuthError } from '@/lib/auth/errors';
+import { setSessionExpiredHandler } from '@/lib/auth/session-expiry';
 import { removeItem } from '@/lib/storage/client';
 import { storageKeys } from '@/lib/storage/keys';
 import {
@@ -68,6 +69,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   // Prevents duplicate simultaneous sign-in requests.
   const socialAuthInFlight = useRef(false);
+  // Mirrors `isAuthenticated` so the session-expiry handler can read the latest
+  // value without being re-registered on every auth state change.
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  isAuthenticatedRef.current = isAuthenticated;
 
   useEffect(() => {
     async function fetchUser() {
@@ -85,6 +90,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     fetchUser();
+  }, []);
+
+  /**
+   * A 401 on any request means the session cookie is gone (it expires after 14
+   * days, and there is no renewal). Without this the app kept rendering its
+   * error states while still believing it was signed in, and never offered a
+   * way back to the login screen.
+   */
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      if (!isAuthenticatedRef.current) return;
+      setUser(null);
+      setIsAuthenticated(false);
+      queryClient.clear();
+    });
+
+    return () => setSessionExpiredHandler(null);
   }, []);
 
   async function login(

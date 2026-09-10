@@ -1,5 +1,6 @@
 import { apiClient } from '../api.client';
 import { ErrorCode } from '../api.types';
+import { setSessionExpiredHandler } from '@/lib/auth/session-expiry';
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -34,6 +35,54 @@ describe('apiClient', () => {
         credentials: 'include',
       }),
     );
+  });
+
+  it('notifies the auth layer when the session is gone', async () => {
+    mockFetch.mockReturnValue(
+      jsonResponse({ error: { statusCode: 401, message: 'Not authenticated' } }, 401),
+    );
+
+    const onExpired = jest.fn();
+    setSessionExpiredHandler(onExpired);
+    try {
+      const result = await apiClient.get('/activities');
+      expect(result.error?.code).toBe(ErrorCode.UNAUTHORIZED);
+      expect(onExpired).toHaveBeenCalledTimes(1);
+    } finally {
+      setSessionExpiredHandler(null);
+    }
+  });
+
+  it('does not end the session when a sign-in is rejected', async () => {
+    mockFetch.mockReturnValue(
+      jsonResponse(
+        { error: { code: 'INVALID_CREDENTIALS', message: 'Bad credentials' } },
+        401,
+      ),
+    );
+
+    const onExpired = jest.fn();
+    setSessionExpiredHandler(onExpired);
+    try {
+      const result = await apiClient.post('/auth/login', {});
+      expect(result.error?.code).toBe(ErrorCode.INVALID_CREDENTIALS);
+      expect(onExpired).not.toHaveBeenCalled();
+    } finally {
+      setSessionExpiredHandler(null);
+    }
+  });
+
+  it('surfaces a mapped error instead of rejecting on a non-JSON body', async () => {
+    mockFetch.mockReturnValue(
+      Promise.resolve({
+        ok: false,
+        status: 502,
+        json: () => Promise.reject(new SyntaxError('Unexpected token <')),
+      }),
+    );
+
+    const result = await apiClient.post('/auth/login', {});
+    expect(result.error?.code).toBe(ErrorCode.GENERIC_ERROR);
   });
 
   it('returns mapped error when server returns error payload', async () => {
