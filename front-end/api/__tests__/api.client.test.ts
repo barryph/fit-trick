@@ -37,6 +37,29 @@ describe('apiClient', () => {
     );
   });
 
+  it('reports missing server configuration instead of a network error', async () => {
+    // EXPO_PUBLIC_* values are inlined at bundle time, so a build created
+    // without them can never connect. It must not tell the user to check their
+    // connection.
+    const original = process.env.EXPO_PUBLIC_SERVER_URL;
+    jest.resetModules();
+    delete process.env.EXPO_PUBLIC_SERVER_URL;
+
+    try {
+      const { apiClient: unconfiguredClient } =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require('../api.client') as typeof import('../api.client');
+      const result = await unconfiguredClient.get('/activities');
+
+      expect(result.error?.message).toMatch(/missing its server configuration/i);
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(result.error?.code).toBe(ErrorCode.GENERIC_ERROR);
+    } finally {
+      process.env.EXPO_PUBLIC_SERVER_URL = original;
+      jest.resetModules();
+    }
+  });
+
   it('notifies the auth layer when the session is gone', async () => {
     mockFetch.mockReturnValue(
       jsonResponse({ error: { statusCode: 401, message: 'Not authenticated' } }, 401),

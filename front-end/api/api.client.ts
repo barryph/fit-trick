@@ -14,6 +14,22 @@ export interface OptionalOptions {
 const BASE_URL = process.env.EXPO_PUBLIC_SERVER_URL;
 
 /**
+ * `EXPO_PUBLIC_*` values are inlined when the bundle is built, so a build made
+ * without them cannot be repaired at runtime. Without this guard the request
+ * URL became the literal string "undefined/activities", fetch rejected with a
+ * TypeError, and the user was told to check their connection - a configuration
+ * failure disguised as a network one.
+ */
+const MISSING_CONFIG_MESSAGE =
+  'This build is missing its server configuration and cannot connect. Please install the latest version.';
+
+if (!BASE_URL && __DEV__) {
+  console.error(
+    'EXPO_PUBLIC_SERVER_URL is not set. Add it to .env (or the EAS environment for this build profile).',
+  );
+}
+
+/**
  * Reads the JSON body, tolerating responses that are not JSON.
  *
  * Reverse proxies return text/HTML for 502/504, and a failed `response.json()`
@@ -56,6 +72,15 @@ class APIClient {
     options: RequestInit = {},
   ): Promise<ApiResponse<T>> {
     try {
+      if (!BASE_URL) {
+        return {
+          error: {
+            code: ErrorCode.GENERIC_ERROR,
+            message: MISSING_CONFIG_MESSAGE,
+          },
+        };
+      }
+
       const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`;
       const response = await fetch(fullUrl, {
         // Set your default options here
