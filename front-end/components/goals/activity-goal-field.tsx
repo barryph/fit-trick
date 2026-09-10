@@ -11,6 +11,7 @@ import Label from '@/components/base/label';
 import InputErrorMessage from '@/components/base/input-error-message.tsx';
 import { ThemedText } from '@/components/base/themed-text';
 import type { ActivityFormValues } from '../activities/activity-schema';
+import { useSheetBackHandler } from '@/hooks/use-sheet-back-handler';
 
 const GOAL_OPTIONS: { value: number | null; label: string }[] = [
   { value: null, label: 'No goal' },
@@ -29,6 +30,9 @@ export default function ActivityGoalField() {
     (props: any) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} />,
     [],
   );
+
+  const dismissSheet = useCallback(() => sheetRef.current?.dismiss(), []);
+  const onSheetChange = useSheetBackHandler(dismissSheet);
 
   return (
     <Controller
@@ -72,6 +76,7 @@ export default function ActivityGoalField() {
 
             <BottomSheetModal
               ref={sheetRef}
+              onChange={onSheetChange}
               index={0}
               snapPoints={['50%']}
               backgroundStyle={styles.sheetBackground}

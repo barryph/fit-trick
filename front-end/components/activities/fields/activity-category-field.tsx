@@ -14,6 +14,7 @@ import CreateCategoryModal from '@/components/categories/create-category-modal';
 import Dot from '@/components/dot';
 import type { ICategory } from '@/api/api.categories';
 import type { ActivityFormValues } from '../activity-schema';
+import { useSheetBackHandler } from '@/hooks/use-sheet-back-handler';
 
 interface Props {
   categories: ICategory[];
@@ -23,6 +24,8 @@ export default function ActivityCategoryField({ categories }: Props) {
   const { control } = useFormContext<ActivityFormValues>();
   const sheetRef = useRef<BottomSheetModal>(null);
   const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false);
+  const dismissSheet = useCallback(() => sheetRef.current?.dismiss(), []);
+  const onSheetChange = useSheetBackHandler(dismissSheet);
 
   // Backdrop allows us to close the modal on outside click
   const renderBackdrop = useCallback(
@@ -89,6 +92,7 @@ export default function ActivityCategoryField({ categories }: Props) {
             <BottomSheetModal
               ref={sheetRef}
               index={0}
+              onChange={onSheetChange}
               snapPoints={['60%']}
               backgroundStyle={styles.sheetBackground}
               handleIndicatorStyle={styles.sheetHandle}

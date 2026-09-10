@@ -14,6 +14,7 @@ import InsightsLineChartKit, {
 import ListItemShell from '@/components/list-item-shell';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
+import { goBackOrHome } from '@/lib/navigation/back';
 
 interface WeeklyInsightsScreenProps {
   title: string;
@@ -73,7 +74,7 @@ export default function WeeklyInsightsScreen({
       <ScrollView>
         <Container style={styles.scrollContent}>
           <View style={styles.titleRow}>
-            <Pressable onPress={() => router.back()}>
+            <Pressable onPress={() => goBackOrHome(router)}>
               <Ionicons name="arrow-back" size={27} color="white" />
             </Pressable>
             <ThemedText type="title" size="medium">

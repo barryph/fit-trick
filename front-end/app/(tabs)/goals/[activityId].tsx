@@ -16,6 +16,7 @@ import { useStaleRefetchOnFocus } from '@/hooks/queries/use-stale-refetch-on-foc
 import { queryKeys } from '@/lib/query/keys';
 import { formatGoalProgress } from '@/lib/goals/goal-progress';
 import { YYYYMMDD } from '@/utils/date';
+import { goBackOrHome } from '@/lib/navigation/back';
 
 function isString(val: unknown): val is string {
   return typeof val === 'string';
@@ -63,7 +64,7 @@ export default function GoalInsightsScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.topRow}>
-          <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Pressable onPress={() => goBackOrHome(router)} hitSlop={8}>
             <Ionicons name="arrow-back" size={27} color="white" />
           </Pressable>
           <ThemedText weight="700" size="regular">

@@ -26,6 +26,7 @@ import { useCategoriesQuery } from '@/hooks/queries/use-categories';
 import { useCreateActivityMutation } from '@/hooks/mutations/use-activity-mutations';
 import { formatDateISO } from '@/utils/date';
 import { ApiError } from '@/lib/query/unwrap';
+import { goBackOrHome } from '@/lib/navigation/back';
 
 export default function CreateActivityPage() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function CreateActivityPage() {
         goalTargetPerWeek: values.goalTargetPerWeek,
       });
       form.reset();
-      router.back();
+      goBackOrHome(router);
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
@@ -71,7 +72,7 @@ export default function CreateActivityPage() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.topRow}>
-            <Pressable onPress={() => router.back()} hitSlop={8}>
+            <Pressable onPress={() => goBackOrHome(router)} hitSlop={8}>
               <Ionicons name="arrow-back" size={27} color="white" />
             </Pressable>
             <ThemedText weight="700" size="large">

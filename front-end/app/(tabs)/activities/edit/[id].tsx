@@ -29,6 +29,7 @@ import { useActivityQuery } from '@/hooks/queries/use-activities';
 import { useCategoriesQuery } from '@/hooks/queries/use-categories';
 import { useEditActivityMutation } from '@/hooks/mutations/use-activity-mutations';
 import { ApiError } from '@/lib/query/unwrap';
+import { goBackOrHome } from '@/lib/navigation/back';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -116,7 +117,7 @@ export default function EditActivityPage() {
           goalTargetPerWeek: values.goalTargetPerWeek,
         },
       });
-      router.back();
+      goBackOrHome(router);
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
@@ -168,7 +169,7 @@ export default function EditActivityPage() {
         >
           <View style={styles.topRow}>
             <View style={styles.titleRow}>
-              <Pressable onPress={() => router.back()}>
+              <Pressable onPress={() => goBackOrHome(router)}>
                 <Ionicons name="arrow-back" size={27} color="white" />
               </Pressable>
               <ThemedText type="title" size="large">
@@ -187,10 +188,23 @@ export default function EditActivityPage() {
             </View>
           </View>
           <View style={styles.form}>
-            {initLoadErrorMessage && (
-              <AlertError>{initLoadErrorMessage}</AlertError>
-            )}
-            {activityQuery.isPending || !formReady ? (
+            {initLoadErrorMessage ? (
+              // The form can never become ready here: a failed load leaves
+              // `initializedForId` unset, and an invalid/missing id disables the
+              // query so it stays pending forever. Render a terminal state with
+              // a retry instead of an animating skeleton stack that never ends.
+              <View style={styles.loadError}>
+                <AlertError>{initLoadErrorMessage}</AlertError>
+                {activityQuery.isError ? (
+                  <Button
+                    onPress={() => void activityQuery.refetch()}
+                    style={styles.retryButton}
+                  >
+                    Try again
+                  </Button>
+                ) : null}
+              </View>
+            ) : activityQuery.isPending || !formReady ? (
               <>
                 <Skeleton
                   width={200}
@@ -256,7 +270,7 @@ export default function EditActivityPage() {
         onClose={() => setIsDeleteModalVisible(false)}
         onDeleted={() => {
           setIsDeleteModalVisible(false);
-          router.back();
+          goBackOrHome(router);
         }}
       />
 
@@ -286,6 +300,12 @@ export default function EditActivityPage() {
 }
 
 const styles = StyleSheet.create({
+  loadError: {
+    gap: 12,
+  },
+  retryButton: {
+    marginTop: 4,
+  },
   flex: {
     flex: 1,
   },
