@@ -29,21 +29,26 @@ export class GetActivityEventsQuery {
       .select([
         'activities.id as activity_id',
         'activities.category_id as category_id',
-        'activity_events.date as date',
+        // Format in SQL rather than letting node-postgres parse the DATE column
+        // into a JS Date. A DATE has no time zone, but the driver builds one at
+        // local midnight, and toISOString() then renders it as the *previous*
+        // day for every positive UTC offset - shifting every event date for a
+        // server that is not running on UTC. Every other date query in the
+        // module already selects to_char(...) for this reason.
+        this.knexService.connection.raw(
+          "to_char(activity_events.date, 'YYYY-MM-DD') as date",
+        ),
       ])
       .orderBy('activity_events.date', 'asc')) as Array<{
       activity_id: string;
       category_id: number | null;
-      date: Date | string;
+      date: string;
     }>;
 
     const events: ActivityEventDTO[] = rows.map((row) => ({
       activityId: row.activity_id,
       categoryId: row.category_id,
-      date:
-        typeof row.date === 'string'
-          ? row.date.slice(0, 10)
-          : row.date.toISOString().slice(0, 10),
+      date: row.date,
     }));
 
     return { events };

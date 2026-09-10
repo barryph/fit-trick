@@ -10,8 +10,12 @@ export function formatDateISO(date: Date): string {
  * The date is local, aka matches the current devices date.
  */
 export function YYYYMMDD(date = new Date()): string {
-  // en-CA returns in the format 'YYYY-MM-DD', en-NZ does not
-  return new Intl.DateTimeFormat('en-CA').format(date);
+  // Built from the local date parts rather than via Intl: this value is the
+  // calendar date sent to the API, and a locale-derived format is at the mercy
+  // of the engine's ICU data (Hermes historically resolves locales
+  // inconsistently, e.g. 'en-CA' degrading to M/D/YYYY). The backend treats it
+  // as an opaque calendar date, so it must never depend on the device locale.
+  return formatDateISO(date);
 }
 
 /**
