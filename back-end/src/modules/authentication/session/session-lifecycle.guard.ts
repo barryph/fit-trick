@@ -22,11 +22,13 @@ import { SessionRevocationError } from '../authentication.errors';
 /**
  * Enforces the session lifecycle on every authenticated request:
  *
- *  - **Rolling renewal.** Once the current idle window is more than halfway
- *    through, the window is re-granted: the session record is re-saved (which
- *    also re-issues the cookie, same session id, with a fresh `Max-Age`).
- *    Before halfway nothing is written and no `Set-Cookie` is sent, so an
- *    active mobile client is not charged a cookie/`UPDATE` for every request.
+ *  - **Rolling renewal.** Once the current idle window is at or past halfway,
+ *    the window is re-granted: the session record is re-saved (which also
+ *    re-issues the cookie, same session id, with a fresh `Max-Age`). Before
+ *    halfway the record and the `Set-Cookie` are left alone. That is not the
+ *    same as "no database write": express-session still calls `store.touch` on
+ *    every request, which `UPDATE`s the row's `expired` column — see
+ *    `docs/session-management.md` ("What is written on every request").
  *
  *  - **Absolute cap.** A session older than the absolute window is revoked
  *    even while it is active. This is what stops "renew forever" from meaning

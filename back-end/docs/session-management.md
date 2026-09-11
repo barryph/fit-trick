@@ -65,9 +65,50 @@ through** (`now - renewedAt >= idle / 2`), `SessionLifecycleGuard`:
 3. which makes `express-session` re-save the record **and re-issue the cookie**
    — same session id, fresh `Expires`.
 
-Before halfway nothing is written and **no `Set-Cookie` is sent**. A phone that
-makes many parallel requests is not charged a cookie and a database write per
-request, and the session id never changes underneath those requests.
+Before halfway the session record and the `Set-Cookie` are left alone, and the
+session id never changes underneath concurrent requests.
+
+### What is written on every request
+
+"No write before halfway" is about the *record* and the *cookie*, not about the
+database. `express-session` is configured with `resave: false` and
+`saveUninitialized: false`, and that has two distinct paths:
+
+* **Session data changed** (sign-in, or a renewal rewriting `auth.renewedAt`) →
+  `express-session` calls `store.set(...)`, which rewrites the whole record
+  (`sess` JSON + `expired` column). In `connect-session-knex` that write is an
+  upsert.
+* **Any other request with a resolvable session** → the session is not modified,
+  so `express-session` calls `req.session.touch()` and then
+  `store.touch(sid, session)` (`express-session/index.js`, `shouldTouch`;
+  `session/session.js`, `touch`/`resetMaxAge`). `touch()` sets the in-memory
+  cookie expiry back to `originalMaxAge`, and `connect-session-knex` persists
+  that single value (`src/index.ts`, `touch`):
+
+  ```sql
+  UPDATE user_sessions
+     SET expired = <now + idle window>
+   WHERE sid = ? AND expired >= now
+  ```
+
+So there **is exactly one `UPDATE user_sessions` per authenticated request**,
+renewal or not. What renewal avoids is:
+
+* re-serialising the session record and re-issuing a `Set-Cookie` on every
+  request, and
+* moving `auth.renewedAt`, which is what the guard's idle rule and the rolling
+  window are evaluated against.
+
+Two consequences worth knowing:
+
+* The stored `expired` can run **ahead of** the window the guard enforces:
+  `touch` sets it to `last request + idle`, while the guard revokes at
+  `last renewal + idle`. The guard is the effective idle control; the stored
+  expiry is the second bound that eventually removes a row nobody touches again.
+  Both are needed.
+* Any future change that stops the guard running on a route (or a store whose
+  `touch` no longer refreshes `expired`) changes which of the two bounds is
+  doing the work — they are not interchangeable.
 
 ### The absolute cap is the point
 
@@ -144,7 +185,7 @@ credential stays alive. Revocation is never silently skipped.
 | **Session theft / replay** | Idle + absolute caps bound the usable life of a stolen id; revocation deletes the row server-side; the id is opaque, `HttpOnly`, and never exposed to client JavaScript |
 | **Indefinite renewal** | The absolute cap is anchored at sign-in and cannot be moved by renewal |
 | **Tampered / forged cookie** | Cookie is signed with `SESSION_SECRET`; an unsigned value is rejected and reported as an ended session |
-| **Idle credential left behind** | Rows expire on their own and are cleaned up by the store (every 60s) |
+| **Idle credential left behind** | The guard revokes on the window it granted at the last renewal; the store also drops rows nothing has touched within the window (cleanup every 60s) |
 | **Sign-out not taking effect** | Logout, password reset and account deletion all delete rows; a client that kept the old cookie is rejected |
 | **Enumeration / brute force** | `@Throttle` on the auth endpoints (global `ThrottlerGuard` in non-test environments) |
 
@@ -214,6 +255,7 @@ credential stays alive. Revocation is never silently skipped.
 | --- | --- |
 | Windows, renewal/revocation decision (pure) | `src/modules/authentication/session/session-policy.ts` |
 | Renewal, absolute/idle revocation, `sessionEnded` marker | `src/modules/authentication/session/session-lifecycle.guard.ts` |
+| Durable revocation (tombstones) | `src/modules/authentication/repos/session-revocation.repository.ts`, migration `20260901000000_revoked_sessions.ts` |
 | Cookie name/attributes (one source of truth) | `src/modules/authentication/session/session-cookie.ts` |
 | Session middleware, cookie window, passport wiring | `src/configure-app.ts` |
 | Sign-in anchoring (`auth.createdAt` / `auth.renewedAt`) | `src/modules/authentication/authentication.controller.ts` (`establishSession`) |
@@ -236,9 +278,9 @@ The session record stores its bookkeeping under `sess.auth`:
 
 | File | Covers |
 | --- | --- |
-| `src/modules/authentication/session/session-policy.spec.ts` | Windows, validation, halfway renewal, caps, unanchored sessions, clock skew |
-| `src/modules/authentication/session/session-lifecycle.guard.spec.ts` | Renewal writes, no-churn, revocation, session-object handling, cookie detection |
-| `test/e2e/session-renewal.e2e-spec.ts` | Anchoring, renewal response/`Expires`, unanchored sessions, idle and absolute expiry, sign-out, password-reset revocation, id rotation, concurrency, public-route tolerance |
+| `src/modules/authentication/session/session-policy.spec.ts` | Windows, validation, halfway renewal, caps, fail-closed anchors (missing vs malformed), clock skew |
+| `src/modules/authentication/session/session-lifecycle.guard.spec.ts` | Renewal writes, no-churn, revocation, durable revocation (tombstones), revocation failures, session-object handling, cookie detection |
+| `test/e2e/session-renewal.e2e-spec.ts` | Anchoring, renewal response/`Expires`, unanchored sessions, idle and absolute expiry, sign-out, password-reset revocation, revocation write-back durability, id rotation, concurrency, public-route tolerance |
 | `test/e2e/session-window.e2e-spec.ts` | The same rules against real elapsed time with short configured windows |
 
 Run them with `pnpm run test:unit` and `pnpm run test:e2e` (the e2e suite needs
@@ -261,3 +303,11 @@ In other words, sessions were effectively non-expiring server-side, and adding
 `rolling: true` alone would have formalised that. The current design keeps
 sliding behaviour but bounds it: the idle window is re-granted only on
 authenticated activity, and never past the absolute cap anchored at sign-in.
+
+Note that `touch` itself was **not** removed — it still runs on every request
+and still pushes the row's `expired` forward (see "What is written on every
+request"). What was missing before was an independent bound: with no
+`auth.renewedAt` to compare against, nothing in the application ever decided a
+session had gone unused too long. Now `SessionLifecycleGuard` makes that
+decision on every authenticated request, from data the store's `touch` cannot
+move, so the stored row is no longer the thing enforcing the idle window.
