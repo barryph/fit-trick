@@ -45,7 +45,8 @@ export interface SessionAnchor {
 }
 
 export type SessionRenewalReason = 'missing-anchor' | 'halfway';
-export type SessionRevocationReason = 'absolute-expired' | 'idle-expired';
+export type SessionRevocationReason =
+  'absolute-expired' | 'idle-expired' | 'invalid-anchor';
 
 /**
  * Why a request's session is no longer usable. `not-found` covers sessions the
@@ -78,6 +79,27 @@ function isUsableTimestamp(value: unknown): value is number {
 }
 
 /**
+ * Anchor for a session created before rolling renewal existed, reconstructed
+ * from the window it still holds.
+ *
+ * That window was granted as `idleTtl` when the session was written, so its
+ * start is the best available estimate of sign-in. Using `now` instead would
+ * hand the session a fresh absolute cap — the fail-open this migration must
+ * avoid. `now` is only used when there is no window to derive from at all.
+ */
+function migrateLegacyAnchor(
+  windowExpiresAt: number | null,
+  now: number,
+  policy: SessionPolicy,
+): SessionAnchor {
+  const createdAt =
+    windowExpiresAt === null
+      ? now
+      : Math.min(now, windowExpiresAt - policy.idleTtlMs);
+  return { createdAt, renewedAt: now };
+}
+
+/**
  * Decides what should happen to an authenticated session on an incoming
  * request.
  *
@@ -94,13 +116,30 @@ export function evaluateSession(input: {
 }): SessionDecision {
   const { anchor, windowExpiresAt, now, policy } = input;
 
-  // Sessions that predate rolling renewal carry no anchor. Give them a fresh
-  // window rather than signing every existing user out on deploy; the absolute
-  // cap then starts from the moment they were first seen.
+  // An unusable anchor must never be silently replaced with a fresh one: that
+  // both restarts the absolute cap and skips the idle window, so a session
+  // that should be dead would be granted a full new lifetime.
   if (!isSessionAnchor(anchor)) {
+    // A window that has already run out is a session that ended, whether or
+    // not the anchor survived.
+    if (windowExpiresAt !== null && windowExpiresAt <= now) {
+      return { kind: 'revoke', reason: 'idle-expired' };
+    }
+
+    // Present but not a usable anchor (wrong shape, `null`, non-finite
+    // timestamps): fail closed rather than trust it. This also catches
+    // representation drift, e.g. a future change storing ISO strings or
+    // seconds. Only a genuinely absent anchor is treated as a legacy session.
+    if (anchor !== undefined) {
+      return { kind: 'revoke', reason: 'invalid-anchor' };
+    }
+
+    // No anchor at all: sessions created before rolling renewal existed. Only
+    // migrate them while their granted window is still valid, and derive the
+    // sign-in time from that window so the absolute cap is not restarted.
     return {
       kind: 'renew',
-      anchor: createSessionAnchor(now),
+      anchor: migrateLegacyAnchor(windowExpiresAt, now, policy),
       reason: 'missing-anchor',
     };
   }

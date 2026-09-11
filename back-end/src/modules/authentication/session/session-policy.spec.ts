@@ -124,24 +124,60 @@ describe('evaluateSession', () => {
     });
   });
 
-  it('anchors sessions that predate rolling renewal instead of revoking them', () => {
-    const decision = evaluate(undefined, now - 10 * ONE_DAY_IN_MS);
-    expect(decision).toEqual({
+  it('revokes a legacy session whose granted window has already passed', () => {
+    expect(evaluate(undefined, now - 10 * ONE_DAY_IN_MS)).toEqual({
+      kind: 'revoke',
+      reason: 'idle-expired',
+    });
+  });
+
+  it('migrates a legacy session without restarting its absolute cap', () => {
+    // Signed in 10 days ago under the old 14-day cookie, so four days of its
+    // original window remain: the absolute cap must start 10 days ago, not
+    // today.
+    const windowExpiresAt = now + 4 * ONE_DAY_IN_MS;
+    expect(evaluate(undefined, windowExpiresAt)).toEqual({
       kind: 'renew',
-      anchor: { createdAt: now, renewedAt: now },
+      anchor: { createdAt: now - 10 * ONE_DAY_IN_MS, renewedAt: now },
       reason: 'missing-anchor',
     });
+  });
+
+  it('does not move a legacy session’s cap into the future', () => {
+    // A window longer than the configured idle TTL cannot be attributed to a
+    // sign-in in the future; the cap starts now at the latest.
+    const decision = evaluate(undefined, now + 30 * ONE_DAY_IN_MS);
+    expect(decision).toMatchObject({ kind: 'renew' });
+    if (decision.kind === 'renew') {
+      expect(decision.anchor.createdAt).toBeLessThanOrEqual(now);
+    }
   });
 
   it.each([
     ['not an object', 'nope'],
     ['null', null],
+    ['empty object', {}],
     ['only createdAt', { createdAt: now }],
     ['non-numeric timestamps', { createdAt: 'yesterday', renewedAt: now }],
     ['NaN timestamps', { createdAt: Number.NaN, renewedAt: Number.NaN }],
-  ])('treats %s as an unanchored session', (_label, anchor) => {
-    expect(evaluate(anchor)).toMatchObject({
+  ])('fails closed on a malformed anchor (%s)', (_label, anchor) => {
+    expect(evaluate(anchor)).toEqual({
+      kind: 'revoke',
+      reason: 'invalid-anchor',
+    });
+  });
+
+  it('revokes a malformed anchor even when the window is still valid', () => {
+    expect(
+      evaluate({ createdAt: now - ONE_DAY_IN_MS, renewedAt: 'yesterday' }),
+    ).toEqual({ kind: 'revoke', reason: 'invalid-anchor' });
+  });
+
+  it('lets a legacy session with no window at all keep rolling', () => {
+    // Nothing to derive a sign-in time from and nothing to prove it lapsed.
+    expect(evaluate(undefined, null)).toEqual({
       kind: 'renew',
+      anchor: { createdAt: now, renewedAt: now },
       reason: 'missing-anchor',
     });
   });

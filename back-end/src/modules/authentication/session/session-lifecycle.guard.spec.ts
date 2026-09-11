@@ -111,15 +111,49 @@ describe('SessionLifecycleGuard', () => {
     expect(request.sessionStore.destroy).not.toHaveBeenCalled();
   });
 
-  it('anchors a session that predates rolling renewal', async () => {
+  it('migrates a legacy session that still has a valid window', async () => {
+    const request = createRequest();
+    request.session!.auth = undefined;
+    request.session!.cookie.expires = new Date(now + 4 * ONE_DAY_IN_MS);
+
+    await guard.canActivate(createContext(request));
+
+    // Signed in ten days ago, so the absolute cap keeps its original start.
+    expect(request.session!.auth).toEqual({
+      createdAt: now - 10 * ONE_DAY_IN_MS,
+      renewedAt: now,
+    });
+    expect(request.sessionStore.destroy).not.toHaveBeenCalled();
+  });
+
+  it('revokes a legacy session whose window already lapsed', async () => {
     const request = createRequest();
     request.session!.auth = undefined;
     request.session!.cookie.expires = new Date(now - ONE_DAY_IN_MS);
 
     await guard.canActivate(createContext(request));
 
-    expect(request.session!.auth).toEqual({ createdAt: now, renewedAt: now });
-    expect(request.sessionStore.destroy).not.toHaveBeenCalled();
+    expect(request.sessionStore.destroy).toHaveBeenCalledWith(
+      'sid-1',
+      expect.any(Function),
+    );
+    expect(request.sessionEnded).toBe('idle-expired');
+  });
+
+  it('fails closed on a malformed anchor instead of re-anchoring it', async () => {
+    const request = createRequest();
+    request.session!.auth = {
+      createdAt: 'yesterday',
+      renewedAt: now,
+    } as unknown as { createdAt: number; renewedAt: number };
+
+    await guard.canActivate(createContext(request));
+
+    expect(request.sessionStore.destroy).toHaveBeenCalledWith(
+      'sid-1',
+      expect.any(Function),
+    );
+    expect(request.sessionEnded).toBe('invalid-anchor');
   });
 
   it('revokes a session past the absolute cap even while it is active', async () => {

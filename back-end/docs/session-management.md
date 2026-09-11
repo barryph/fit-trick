@@ -23,6 +23,13 @@ Both windows are milliseconds and are validated at startup: an unusable value is
 logged and ignored, and the absolute cap is never allowed to be shorter than the
 idle window.
 
+A session that carries no anchor at all (created before rolling renewal existed)
+is migrated once, and only while its granted window is still valid: the absolute
+cap is derived from that window rather than restarted, so its remaining life does
+not change. A session whose stored anchor is present but unusable is treated as
+lapsed and revoked — a corrupt or unexpected anchor must never buy a new
+lifetime.
+
 ```text
 sign-in          halfway                       idle window ends
    |----------------|---------------------------------|
