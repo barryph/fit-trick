@@ -12,6 +12,12 @@ jest.mock('@/api/api.users');
 jest.mock('@/api/api.auth');
 jest.mock('@/lib/auth/google');
 jest.mock('@/lib/auth/apple');
+jest.mock('@/lib/storage/activity-queue', () => ({
+  clearActivityQueue: jest.fn().mockResolvedValue(undefined),
+}));
+
+const mockClearActivityQueue = require('@/lib/storage/activity-queue')
+  .clearActivityQueue as jest.Mock;
 
 const mockGetCurrentUser = usersAPI.getCurrentUser as jest.Mock;
 const mockLogin = authAPI.login as jest.Mock;
@@ -365,6 +371,8 @@ describe('AuthProvider account deletion', () => {
     // No identifier is ever sent to the backend.
     expect(mockDeleteAccount).toHaveBeenCalledWith();
     expect(await screen.findByText('logged out')).toBeTruthy();
+    // The account is gone, so its queued offline activity goes with it.
+    expect(mockClearActivityQueue).toHaveBeenCalledWith(testUser.id);
   });
 
   it('skips the Google disconnect for an email/password account', async () => {
@@ -479,6 +487,9 @@ describe('AuthProvider account deletion', () => {
     });
 
     expect(await screen.findByText('Not authenticated')).toBeTruthy();
+    // A session ending is not account deletion: the offline queue is the
+    // user's data and must survive so it can sync after signing in again.
+    expect(mockClearActivityQueue).not.toHaveBeenCalled();
   });
 
   it('propagates errors and keeps the user signed in when deletion fails', async () => {

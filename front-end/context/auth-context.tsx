@@ -21,8 +21,7 @@ import {
 import { signInWithApple as appleSignInClient } from '@/lib/auth/apple';
 import { isSocialAuthError } from '@/lib/auth/errors';
 import { onSessionExpired } from '@/lib/auth/session-expiry';
-import { removeItem } from '@/lib/storage/client';
-import { storageKeys } from '@/lib/storage/keys';
+import { clearActivityQueue } from '@/lib/storage/activity-queue';
 import {
   logLogin,
   logLoginFailed,
@@ -73,13 +72,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // value without being re-registered on every auth state change.
   const isAuthenticatedRef = useRef(isAuthenticated);
   isAuthenticatedRef.current = isAuthenticated;
-  // Latest user, readable from the session-expiry listener without
-  // re-subscribing on every auth state change.
-  const userRef = useRef<IUser | null>(null);
-
-  useEffect(() => {
-    userRef.current = user;
-  }, [user]);
 
   useEffect(() => {
     async function fetchUser() {
@@ -103,14 +95,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * The server can end a session while the app is running: it expired, it was
    * signed out on another device, or a password reset revoked it — and a bare
    * 401 (no usable session presented at all) is reported the same way. The
-   * credential is already dead, so clear local state and let the navigation
-   * guard send the user back to sign-in. The `isAuthenticated` guard keeps the
-   * boot-time `getCurrentUser` 401 from disturbing a fresh, signed-out launch.
+   * credential is already dead, so clear the auth state and let the navigation
+   * guard send the user back to sign-in — but keep the user's local data, so
+   * anything queued offline still syncs once they sign in again. The
+   * `isAuthenticated` guard keeps the boot-time `getCurrentUser` 401 from
+   * disturbing a fresh, signed-out launch.
    */
   useEffect(() => {
     return onSessionExpired(() => {
       if (!isAuthenticatedRef.current) return;
-      clearLocalAccountState(userRef.current);
+      clearSessionState();
     });
   }, []);
 
@@ -201,13 +195,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  function clearLocalAccountState(account: IUser | null) {
-    if (account) {
-      void removeItem(storageKeys.activityQueue(account.id));
-    }
+  /**
+   * Drops local auth state only. Used when the server ends the session — an
+   * expired or revoked credential is dead, but the user and their data are not:
+   * the offline activity queue must survive so it can sync after signing in
+   * again. Clearing it here would silently discard activity the user recorded
+   * but the server never received.
+   */
+  function clearSessionState() {
     setUser(null);
     setIsAuthenticated(false);
     queryClient.clear();
+  }
+
+  /**
+   * Drops local auth state *and* the account's local data. Only for account
+   * deletion: the account is gone, so its queued activity has nowhere to go.
+   * Uses the queue's own clearer so its in-memory cache is reset too, rather
+   * than removing the stored key behind its back.
+   */
+  function clearLocalAccountState(account: IUser | null) {
+    if (account) {
+      void clearActivityQueue(account.id);
+    }
+    clearSessionState();
   }
 
   async function register(
