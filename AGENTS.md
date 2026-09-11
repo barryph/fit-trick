@@ -32,6 +32,17 @@ Personal habit tracker: `back-end/` (NestJS 11 API + PostgreSQL) and `front-end/
 * `ios/` and `android/` are **gitignored `expo prebuild` artifacts** — configure via `app.config.ts` / `app.json`, never hand-edit natives. `app.config.ts` selects per-variant Firebase files (env `APP_VARIANT` = development|preview|production, set by EAS) from the committed `firebase/{ios,android}/` configs.
 * Maestro E2E (`pnpm run test:maestro`) needs a running backend plus an app installed on an emulator, and logs in as `test@kadence.dev`. The current backend seed (`src/shared/knex/seeds/users.ts`) only creates `test@mail.com` — register the Maestro user manually first.
 
+## Dates and timezones
+
+A **calendar date is the user's local date**, never the server's or UTC's: the
+device's own date travels as `?today=YYYY-MM-DD` on every `/activities` and
+`/goals` endpoint, and the API never substitutes its own clock for it.
+
+Load the **`dates-and-timezones`** skill (`.agents/skills/dates-and-timezones/SKILL.md`)
+before adding or reviewing anything that stores, parses, formats, compares or
+derives a date — API `today` params, `daysUntil`, `DATE` columns and raw SQL,
+day/week/month boundaries, or `useToday()` in the app.
+
 ## Gotchas
 
 * Subpackage READMEs are stock starter boilerplate and have drifted (see `pnpm run dev`, Maestro test user above). Prefer `package.json` scripts, the TESTING.md files, and CI workflows as source of truth.

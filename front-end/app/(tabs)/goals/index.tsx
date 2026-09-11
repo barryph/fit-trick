@@ -14,12 +14,12 @@ import { useGoalsQuery } from '@/hooks/queries/use-goals';
 import { useStaleRefetchOnFocus } from '@/hooks/queries/use-stale-refetch-on-focus';
 import { queryKeys } from '@/lib/query/keys';
 import { formatGoalProgress, isGoalMet } from '@/lib/goals/goal-progress';
-import { YYYYMMDD } from '@/utils/date';
+import { useToday } from '@/hooks/use-today';
 import ProgressBadge from '@/components/progress-badge';
 
 export default function GoalsScreen() {
   const router = useRouter();
-  const today = YYYYMMDD();
+  const today = useToday();
   const {
     data: goals = [],
     isPending,

@@ -9,6 +9,7 @@ import {
   getWeekStartMonday,
   getWeeklyCounts,
 } from './goal-performance.calculator';
+import { withoutAmbientTime } from 'src/shared/testing/local-time-guard';
 
 describe('goal-performance calculator', () => {
   describe('getWeekStartMonday', () => {
@@ -218,6 +219,84 @@ describe('goal-performance calculator', () => {
       expect(getCurrentWeekCount(events, '2026-08-09')).toBe(2);
       // Monday -> a fresh week starts, only the 10 counts so far
       expect(getCurrentWeekCount(events, '2026-08-10')).toBe(1);
+    });
+  });
+
+  /**
+   * The API host may sit in any timezone, and it is frequently on a different
+   * calendar date from the user. Every function here therefore has to work
+   * purely from its `YYYY-MM-DD` arguments.
+   */
+  describe('timezone independence', () => {
+    it('never reads the host clock or the host timezone', () => {
+      withoutAmbientTime(() => {
+        expect(getWeekStartMonday('2026-08-05')).toBe('2026-08-03');
+        expect(getGoalWeekRange('2026-08-05')).toEqual({
+          from: '2026-08-03',
+          to: '2026-08-09',
+        });
+        expect(getLastNWeekStarts(3, '2026-08-05')).toEqual([
+          '2026-07-20',
+          '2026-07-27',
+          '2026-08-03',
+        ]);
+        expect(
+          getWeeklyCounts(['2026-08-03'], ['2026-08-03'], '2026-08-05'),
+        ).toEqual([{ weekStart: '2026-08-03', count: 1 }]);
+        expect(getCurrentWeekCount(['2026-08-03'], '2026-08-05')).toBe(1);
+        expect(getFirstCompletionWeek(['2026-08-05'])).toBe('2026-08-03');
+        expect(
+          filterApplicableWeeks(
+            [{ weekStart: '2026-08-03', count: 1 }],
+            ['2026-08-03'],
+          ),
+        ).toEqual([{ weekStart: '2026-08-03', count: 1 }]);
+        expect(computeHeatmapWeeks(['2026-08-03'], '2026-08-05')).toEqual([
+          { weekStart: '2026-08-03', count: 1 },
+        ]);
+        expect(
+          computeAdherence([{ weekStart: '2026-08-03', count: 3 }], 3),
+        ).toEqual({ applicable: 1, met: 1, percentage: 1 });
+      });
+    });
+
+    it('keeps calendar arithmetic stable across DST transitions', () => {
+      // US spring-forward (2026-03-08) and autumn fall-back (2026-11-01), plus
+      // the southern-hemisphere equivalents. A day is always exactly one day,
+      // regardless of whether a 23- or 25-hour day sits between the two dates.
+      const dstDates = ['2026-03-07', '2026-03-08', '2026-03-09'];
+      expect(dstDates.map(getWeekStartMonday)).toEqual([
+        '2026-03-02',
+        '2026-03-02',
+        '2026-03-09',
+      ]);
+
+      expect(getGoalWeekRange('2026-11-01')).toEqual({
+        from: '2026-10-26',
+        to: '2026-11-01',
+      });
+
+      // Weeks stay exactly seven calendar days apart across both transitions.
+      // Asserted as literal dates so the expectation is independent of the
+      // arithmetic under test.
+      expect(getLastNWeekStarts(6, '2026-11-02')).toEqual([
+        '2026-09-28',
+        '2026-10-05',
+        '2026-10-12',
+        '2026-10-19',
+        '2026-10-26',
+        '2026-11-02',
+      ]);
+    });
+
+    it('treats a client date ahead of the server date as its own week', () => {
+      // A UTC+13 client: their 2026-03-02 (Monday) is still 2026-03-01 on a
+      // UTC server. The week must be the client's, not the server's.
+      expect(getGoalWeekRange('2026-03-02')).toEqual({
+        from: '2026-03-02',
+        to: '2026-03-08',
+      });
+      expect(getCurrentWeekCount(['2026-03-02'], '2026-03-02')).toBe(1);
     });
   });
 });

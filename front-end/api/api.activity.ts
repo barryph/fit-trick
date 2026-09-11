@@ -138,9 +138,21 @@ export const activitiesAPI = {
     );
   },
 
-  deleteActivity(activityId: number | string, options?: OptionalOptions) {
+  /**
+   * Deletes an activity.
+   *
+   * Takes the device's local date like every other activity endpoint: the
+   * delete flow authorizes through the same read that returns the activity's
+   * date-relative countdown, so the API needs the user's calendar date to make
+   * that read well-defined.
+   */
+  deleteActivity(
+    activityId: number | string,
+    today: string,
+    options?: OptionalOptions,
+  ) {
     return apiClient.delete<DeleteActivityResponse>(
-      `/activities/${activityId}`,
+      `/activities/${activityId}?today=${encodeURIComponent(today)}`,
       options,
     );
   },

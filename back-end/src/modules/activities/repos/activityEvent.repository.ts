@@ -22,7 +22,10 @@ export default class ActivityEventRepo implements IActivityEventRepo {
         `
           INSERT INTO activity_events (activity_id, date)
           VALUES (:activityId, :date)
-          RETURNING *, TO_CHAR(date, 'YYYY-MM-DD') as date
+          RETURNING
+            id,
+            activity_id,
+            TO_CHAR(date, 'YYYY-MM-DD') AS date
         `,
         {
           activityId: activityEventDomain.activityId,

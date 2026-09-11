@@ -45,6 +45,9 @@ jobs:
       - name: Unit tests
         run: pnpm run test:unit
 
+      - name: Unit tests (host timezone matrix)
+        run: pnpm run test:timezones
+
       - name: Integration tests
         run: pnpm run test:integration
 

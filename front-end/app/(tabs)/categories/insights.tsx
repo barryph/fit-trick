@@ -10,11 +10,19 @@ import {
   hasAnyWeeklyActivity,
 } from '@/lib/insights/category-weekly-unique-days';
 import { getLastNWeekRange } from '@/utils/date';
+import { useToday } from '@/hooks/use-today';
 
 const WEEK_COUNT = 8;
 
 export default function CategoryInsightsScreen() {
-  const weekRange = useMemo(() => getLastNWeekRange(WEEK_COUNT), []);
+  // Anchored to the user's local date and recomputed when it rolls over: a
+  // window frozen at mount would keep requesting, and charting, last week's
+  // range and would drop every completion logged since.
+  const today = useToday();
+  const weekRange = useMemo(
+    () => getLastNWeekRange(WEEK_COUNT, today),
+    [today],
+  );
   const {
     data: categories = [],
     isPending: isCategoriesPending,

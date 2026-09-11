@@ -19,14 +19,6 @@ export class KnexService implements OnModuleDestroy {
     return this.db;
   }
 
-  /** Returns the database server's current date as YYYY-MM-DD. */
-  async getCurrentDate(): Promise<string> {
-    const result = await this.db.raw<{ rows: Array<{ date: string }> }>(
-      `SELECT to_char(CURRENT_DATE, 'YYYY-MM-DD') AS date`,
-    );
-    return result.rows[0].date;
-  }
-
   async onModuleDestroy(): Promise<void> {
     await this.db.destroy();
   }

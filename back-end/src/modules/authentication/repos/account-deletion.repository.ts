@@ -38,7 +38,7 @@ export default class AccountDeletionRepo {
       });
       await trx.raw(
         `DELETE FROM user_sessions
-         WHERE sess::jsonb->'passport'->>'user' = :userId`,
+         WHERE CAST(sess AS jsonb)->'passport'->>'user' = :userId`,
         { userId: String(userId) },
       );
       await trx.raw(`DELETE FROM users WHERE id = :userId`, { userId });

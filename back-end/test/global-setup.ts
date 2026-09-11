@@ -111,9 +111,13 @@ export default async function globalSetup() {
     setup = await setupLocalDatabase();
   }
 
-  // Workers are forked after globalSetup, so this is applied at spawn time and
-  // affects Date decoding of `date` columns deterministically.
-  process.env.TZ = 'UTC';
+  // The workers deliberately keep the host's timezone. A `process.env.TZ = 'UTC'`
+  // pin used to live here to make node-postgres' decoding of `date` columns
+  // deterministic; `src/shared/knex/date-parsers.ts` now returns those as plain
+  // calendar strings, so the pin only hid timezone bugs. Keeping the host
+  // timezone means these suites exercise an API host genuinely offset from the
+  // client dates they send (the local Postgres server also defaults to
+  // Pacific/Auckland here); on a UTC CI runner the two simply coincide.
 
   fs.writeFileSync(
     ENV_FILE,

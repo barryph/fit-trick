@@ -20,12 +20,20 @@ import {
   markUserCompletedEver,
 } from '@/lib/storage/completion-state';
 
+/**
+ * Writes a fresh activity into every cached activities *list*, whatever date it
+ * was fetched for. The lists are keyed by the user's local date, and a mutation
+ * response is authoritative for the date it was made on, so the update is
+ * applied by list prefix rather than to one exact key. Detail entries are
+ * deliberately not matched: their data is a single activity, not an array.
+ */
 function updateActivitiesListCache(
   queryClient: ReturnType<typeof useQueryClient>,
   updater: (activities: IActivity[]) => IActivity[],
 ) {
-  queryClient.setQueryData<IActivity[]>(queryKeys.activities.all, (current) =>
-    current ? updater(current) : current,
+  queryClient.setQueriesData<IActivity[]>(
+    { queryKey: queryKeys.activities.list },
+    (current) => (current ? updater(current) : current),
   );
 }
 
@@ -45,8 +53,12 @@ function reportActivityCompletion(userId: string): void {
 function setActivityInCaches(
   queryClient: ReturnType<typeof useQueryClient>,
   activity: IActivity,
+  today: string,
 ) {
-  queryClient.setQueryData(queryKeys.activities.detail(activity.id), activity);
+  queryClient.setQueryData(
+    queryKeys.activities.detail(activity.id, today),
+    activity,
+  );
   updateActivitiesListCache(queryClient, (activities) =>
     activities.map((item) => (item.id === activity.id ? activity : item)),
   );
@@ -56,8 +68,9 @@ function removeActivityFromCaches(
   queryClient: ReturnType<typeof useQueryClient>,
   activityId: number | string,
 ) {
+  // Detail queries are date-scoped, so remove by prefix to catch every date's.
   queryClient.removeQueries({
-    queryKey: queryKeys.activities.detail(activityId),
+    queryKey: queryKeys.activities.details(activityId),
   });
   updateActivitiesListCache(queryClient, (activities) =>
     activities.filter((item) => String(item.id) !== String(activityId)),
@@ -81,17 +94,21 @@ export function useCreateActivityMutation() {
     mutationFn: async (
       body: Parameters<typeof activitiesAPI.createActivity>[0],
     ) => {
-      const resp = await activitiesAPI.createActivity(body, YYYYMMDD());
+      // Read the user's local date at request time rather than at render time:
+      // a mutation fired just after local midnight must carry the new day, and
+      // the API treats it as the calendar date every calculation is relative to.
+      const today = YYYYMMDD();
+      const resp = await activitiesAPI.createActivity(body, today);
       const data = unwrapApiResponse(resp);
-      return data.activity;
+      return { activity: data.activity, today };
     },
-    onSuccess: (activity) => {
+    onSuccess: ({ activity, today }) => {
       updateActivitiesListCache(queryClient, (activities) => [
         ...activities,
         activity,
       ]);
       queryClient.setQueryData(
-        queryKeys.activities.detail(activity.id),
+        queryKeys.activities.detail(activity.id, today),
         activity,
       );
       logCreateActivity(Boolean(activity.goal));
@@ -112,16 +129,13 @@ export function useEditActivityMutation() {
       activityId: number | string;
       body: Parameters<typeof activitiesAPI.editActivity>[1];
     }) => {
-      const resp = await activitiesAPI.editActivity(
-        activityId,
-        body,
-        YYYYMMDD(),
-      );
+      const today = YYYYMMDD();
+      const resp = await activitiesAPI.editActivity(activityId, body, today);
       const data = unwrapApiResponse(resp);
-      return data.activity;
+      return { activity: data.activity, today };
     },
-    onSuccess: (activity) => {
-      setActivityInCaches(queryClient, activity);
+    onSuccess: ({ activity, today }) => {
+      setActivityInCaches(queryClient, activity, today);
       logEditActivity();
       void invalidateTimeline(queryClient);
       invalidateGoals(queryClient);
@@ -134,7 +148,10 @@ export function useDeleteActivityMutation() {
 
   return useMutation({
     mutationFn: async (activityId: number | string) => {
-      const resp = await activitiesAPI.deleteActivity(activityId);
+      // Read at request time so the delete carries the user's current day, like
+      // every other activity mutation.
+      const today = YYYYMMDD();
+      const resp = await activitiesAPI.deleteActivity(activityId, today);
       const data = unwrapApiResponse(resp);
       return data.id;
     },
@@ -158,12 +175,13 @@ export function useCompleteActivityMutation() {
       activityId: number | string;
       date: string;
     }) => {
-      const resp = await activitiesAPI.complete(activityId, date, YYYYMMDD());
+      const today = YYYYMMDD();
+      const resp = await activitiesAPI.complete(activityId, date, today);
       const data = unwrapApiResponse(resp);
-      return { activity: data.activity, date };
+      return { activity: data.activity, date, today };
     },
-    onSuccess: ({ activity, date }) => {
-      setActivityInCaches(queryClient, activity);
+    onSuccess: ({ activity, date, today }) => {
+      setActivityInCaches(queryClient, activity, today);
       queryClient.setQueriesData(
         { queryKey: queryKeys.timeline.all },
         (current: ReturnType<typeof patchTimelineSet> | undefined) =>
@@ -188,12 +206,13 @@ export function useUndoActivityMutation() {
       activityId: number | string;
       date: string;
     }) => {
-      const resp = await activitiesAPI.undo(activityId, date, YYYYMMDD());
+      const today = YYYYMMDD();
+      const resp = await activitiesAPI.undo(activityId, date, today);
       const data = await unwrapApiResponse(resp);
-      return { activity: data.activity, date };
+      return { activity: data.activity, date, today };
     },
-    onSuccess: ({ activity, date }) => {
-      setActivityInCaches(queryClient, activity);
+    onSuccess: ({ activity, date, today }) => {
+      setActivityInCaches(queryClient, activity, today);
       queryClient.setQueriesData(
         { queryKey: queryKeys.timeline.all },
         (current: ReturnType<typeof patchTimelineSet> | undefined) =>

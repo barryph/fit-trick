@@ -12,6 +12,7 @@ export interface ActivityDTO {
   daysUntil?: number;
 }
 
+/** The columns actually written to `activities`. */
 export interface IActivityPersistence {
   id?: string;
   user_id: string;
@@ -19,7 +20,19 @@ export interface IActivityPersistence {
   name: string;
   ticker?: string;
   interval: string; // Postgres INTERVAL type e.g. '2 DAYS'
-  days_until?: number;
+}
+
+/**
+ * A persisted activity plus the values derived when it is read.
+ *
+ * `days_until` is deliberately *not* part of `IActivityPersistence`: it is not a
+ * column, it is computed per request from the caller's local date. Requiring it
+ * here means any statement feeding `persistenceToDomain` must project it, so a
+ * hardcoded placeholder or a silently missing column is a type error rather
+ * than a plausible-looking 0.
+ */
+export interface IActivityRow extends IActivityPersistence {
+  days_until: number;
 }
 
 export function toDTO(activity: Activity): ActivityDTO {
@@ -43,11 +56,10 @@ export function toPersistence(activity: Activity): IActivityPersistence {
     name: activity.name,
     ticker: activity.ticker?.value,
     interval: `${activity.interval} DAYS`,
-    days_until: activity.daysUntil,
   };
 }
 
-export function persistenceToDomain(activity: IActivityPersistence): Activity {
+export function persistenceToDomain(activity: IActivityRow): Activity {
   let ticker: ActivityTicker | undefined;
   if (activity.ticker) {
     ticker = ActivityTicker.create(activity.ticker);
@@ -60,7 +72,7 @@ export function persistenceToDomain(activity: IActivityPersistence): Activity {
     name: activity.name,
     ticker,
     interval: parseInt(activity.interval.split(' ')[0], 10),
-    daysUntil: Number(activity.days_until ?? 0),
+    daysUntil: Number(activity.days_until),
   });
 }
 

@@ -8,9 +8,33 @@ Kadence uses a layered testing strategy: fast Jest/RNTL tests for logic and UI b
 # Unit + component + integration (offline, mocked APIs)
 pnpm test
 
+# The same suite under three device timezones (UTC, UTC+14, UTC-8)
+pnpm run test:timezones
+
 # Watch mode
 pnpm run test:watch
 ```
+
+## Timezones
+
+Every date the app works with is the **user's local calendar date**, carried as
+an opaque `YYYY-MM-DD` string and sent to the API as `?today=` (the backend
+rejects a missing one rather than guessing from its own clock).
+
+- `utils/date.ts` does all calendar arithmetic on UTC day numbers, so a day is
+  always exactly one day regardless of DST or the device offset. Only the
+  explicit boundary converters (`YYYYMMDD`, `formatDateISO`)
+  read the device clock, because turning the device's instant into its calendar
+  date is exactly their job.
+- `useToday()` supplies "today" to screens (and to the activities cache key). It
+  re-renders at the device's local midnight and on every return to the
+  foreground, so a phone left open overnight stops showing yesterday.
+- `test/setup/local-time-guard.ts` — `withoutAmbientTime()` replaces `Date` with
+  a UTC-only stand-in whose local-time and `now()` entry points throw. It is the
+  in-process proof that the calendar helpers ignore the ambient timezone; use it
+  when adding date logic.
+- `pnpm run test:timezones` proves the same suite passes with the device on
+  UTC+14 and UTC-8, i.e. on a different calendar date from a UTC server.
 
 ## Jest + React Native Testing Library
 

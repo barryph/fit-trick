@@ -3,6 +3,7 @@ import { KnexService } from 'src/shared/knex/knex.service';
 
 import * as ActivityMap from '../mappers/activityMap';
 import { ActivityWithCategoryDTO } from '../dtos/activityWithCategory.dto';
+import { daysUntilExpression } from '../sql/activity-days-until';
 import type { GoalWeekRange } from '../../activity-goals/domain/goal-performance.calculator';
 
 @Injectable()
@@ -32,10 +33,7 @@ export class GetActivitiesByUserIdQuery {
             )
             ELSE 0
           END AS current_week_count,
-          GREATEST(
-            EXTRACT(DAY FROM activities.interval) - (:today::date - (SELECT MAX(date) FROM activity_events WHERE activity_id = activities.id)),
-            0
-          ) AS days_until
+          ${daysUntilExpression()} AS days_until
         FROM activities
         LEFT JOIN categories ON activities.category_id = categories.id
         LEFT JOIN activity_goals ON activity_goals.activity_id = activities.id

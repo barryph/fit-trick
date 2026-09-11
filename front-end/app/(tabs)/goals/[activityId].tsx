@@ -15,7 +15,7 @@ import { useGoalStatsQuery } from '@/hooks/queries/use-goals';
 import { useStaleRefetchOnFocus } from '@/hooks/queries/use-stale-refetch-on-focus';
 import { queryKeys } from '@/lib/query/keys';
 import { formatGoalProgress } from '@/lib/goals/goal-progress';
-import { YYYYMMDD } from '@/utils/date';
+import { useToday } from '@/hooks/use-today';
 import { goBackOrHome } from '@/lib/navigation/back';
 
 function isString(val: unknown): val is string {
@@ -25,7 +25,7 @@ function isString(val: unknown): val is string {
 export default function GoalInsightsScreen() {
   const { activityId } = useLocalSearchParams();
   const router = useRouter();
-  const today = YYYYMMDD();
+  const today = useToday();
   const {
     data: stats,
     isPending,

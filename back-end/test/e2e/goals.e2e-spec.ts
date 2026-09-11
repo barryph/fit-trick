@@ -34,6 +34,7 @@ describe('Goals (e2e)', () => {
 
     const createResponse = await agent
       .post('/activities')
+      .query({ today: TODAY })
       .send({ name: 'Squats', interval: 3, goalTargetPerWeek: 3 })
       .expect(201);
     const activityId = createResponse.body.data.activity.id;
@@ -70,6 +71,7 @@ describe('Goals (e2e)', () => {
 
     const createResponse = await agent
       .post('/activities')
+      .query({ today: TODAY })
       .send({ name: 'Running', interval: 1, goalTargetPerWeek: 4 })
       .expect(201);
     const activityId = createResponse.body.data.activity.id;
@@ -111,6 +113,7 @@ describe('Goals (e2e)', () => {
 
     const createResponse = await agent
       .post('/activities')
+      .query({ today: TODAY })
       .send({ name: 'Push-ups', interval: 3, goalTargetPerWeek: 3 })
       .expect(201);
     const activityId = createResponse.body.data.activity.id;
@@ -139,11 +142,15 @@ describe('Goals (e2e)', () => {
 
     const createResponse = await agent
       .post('/activities')
+      .query({ today: TODAY })
       .send({ name: 'Planks', interval: 3, goalTargetPerWeek: 2 })
       .expect(201);
     const activityId = createResponse.body.data.activity.id;
 
-    await agent.delete(`/activities/${activityId}`).expect(200);
+    await agent
+      .delete(`/activities/${activityId}`)
+      .query({ today: TODAY })
+      .expect(200);
 
     const list = await agent.get(`/goals?today=${TODAY}`).expect(200);
     expect(list.body.data.goals).toEqual([]);
@@ -154,6 +161,7 @@ describe('Goals (e2e)', () => {
     const owner = await registerAndLogin(app);
     const createResponse = await owner.agent
       .post('/activities')
+      .query({ today: TODAY })
       .send({ name: 'Hidden', interval: 3, goalTargetPerWeek: 3 })
       .expect(201);
     const activityId = createResponse.body.data.activity.id;
