@@ -36,6 +36,7 @@ import {
   sessionCookieAttributes,
 } from './session/session-cookie';
 import SessionRevocationRepo from './repos/session-revocation.repository';
+import { isAuthenticatedSession } from './session/session-state';
 
 @Controller('auth')
 export class AuthenticationController {
@@ -63,11 +64,16 @@ export class AuthenticationController {
     next: NextFunction,
     user: UserDTO,
   ) {
-    // The session being replaced is revoked first, not just deleted: a request
-    // that is already in flight with the old cookie could otherwise write the
+    // A session that is already signed in is revoked first, not just deleted:
+    // a request that is in flight with the old cookie could otherwise write the
     // record back and keep the *previous* account signed in.
+    //
+    // Only an authenticated session needs this. On a request with no session
+    // cookie — or a dead one — express-session has already generated a
+    // throw-away session id that was never stored or issued to anyone, so
+    // tombstoning it would add a row that can never match a real request.
     const previousSid = req.sessionID;
-    if (previousSid) {
+    if (previousSid && isAuthenticatedSession(req.session)) {
       try {
         await this.revocations.revoke(previousSid);
       } catch (err) {

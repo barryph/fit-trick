@@ -15,6 +15,7 @@ import {
 } from './session-policy';
 import SessionRevocationRepo from '../repos/session-revocation.repository';
 import { SessionRevocationError } from '../authentication.errors';
+import { isAuthenticatedSession } from './session-state';
 
 /**
  * Enforces the session lifecycle on every authenticated request:
@@ -212,11 +213,6 @@ export class SessionLifecycleGuard implements CanActivate {
 
 /** `req.session`, including the application's session data. */
 type AppSession = Request['session'];
-
-function isAuthenticatedSession(session: AppSession): boolean {
-  const userId = session.passport?.user;
-  return typeof userId === 'string' || typeof userId === 'number';
-}
 
 /**
  * The idle window recorded when the session was last written. express-session

@@ -366,5 +366,32 @@ describe('Session rolling renewal (e2e)', () => {
       await agent.get('/users/protec').expect(200);
       expect(await getStoredSessions()).toHaveLength(1);
     });
+
+    it('records no tombstone for a sign-in with no prior session', async () => {
+      // A cookie-less register/login makes express-session assign a throw-away
+      // session id: it was neither stored nor issued to the client, so there is
+      // no session to revoke and nothing to tombstone.
+      await registerUser(app);
+
+      expect(await getTestKnex()('revoked_sessions')).toHaveLength(0);
+    });
+
+    it('revokes the previous session when an account signs in again', async () => {
+      const payload = createUserPayload();
+      const { agent } = await registerUser(app, payload);
+      const previous = await getOnlyStoredSession();
+
+      await agent
+        .post('/auth/login')
+        .send({ email: payload.email, password: payload.password })
+        .expect(200);
+
+      // The replaced session is tombstoned, so a request still holding its
+      // cookie cannot write the record back into a usable session.
+      const tombstones = await getTestKnex()('revoked_sessions').where({
+        sid: previous.sid,
+      });
+      expect(tombstones).toHaveLength(1);
+    });
   });
 });
