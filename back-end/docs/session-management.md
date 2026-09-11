@@ -143,10 +143,27 @@ credential stays alive. Revocation is never silently skipped.
 * **Refresh tokens / long-lived API tokens.** They would add a second, longer
   lived credential to steal and revoke, which is exactly what the session model
   avoids.
-* **`SameSite=Strict` as a CSRF control.** It is set (correct for browsers and
-  harmless elsewhere) but React Native sends no site context, so it must not be
-  relied on. Cross-site abuse on browsers is limited by the CORS allow-list and
-  the JSON-only body parser.
+* **A CSRF token or `Origin`/`Referer` check.** Not implemented, and not needed
+  by the current client: the only client is the native mobile app, which sends
+  no `Origin` and has no browser or site context, so there is no ambient
+  credential for a third-party page to ride. `SameSite=Strict` is still set as
+  defence in depth for any future browser client.
+
+  The two controls this document previously credited with limiting cross-site
+  abuse do **not** do so, and must not be relied on if a browser client is ever
+  added:
+
+  * **CORS is not a CSRF control.** It stops a cross-origin page from *reading*
+    a response; a simple request is still sent and still processed. The CORS
+    allow-list also has no effect at all on requests that send no `Origin`, like
+    the mobile app's.
+  * **The body parser is not a CSRF control.** Nest registers
+    `express.urlencoded` by default, so `application/x-www-form-urlencoded`
+    bodies are parsed and can satisfy simple string DTOs; "JSON only" is not a
+    property of this API.
+
+  A browser client would need `SameSite=Strict` (or `Lax` plus a token) **and**
+  an `Origin` allow-list for unsafe methods, or a double-submit CSRF token.
 * **A per-user session cap or "sign out everywhere" endpoint.** Useful future
   hardening; the underlying per-user revocation (`clearUserSessions`) already
   exists.

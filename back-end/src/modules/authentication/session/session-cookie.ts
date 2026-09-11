@@ -19,8 +19,10 @@ export function isSecureCookieEnvironment(
  *
  * `SameSite=Strict` and `Secure` are set for the benefit of browser clients;
  * the mobile app talks to the API outside any browser security context, so
- * neither is load-bearing for it. Protection against cross-site abuse on
- * browsers comes from the CORS allow-list, not from these attributes alone.
+ * neither is load-bearing for it. For a browser client `SameSite=Strict` is the
+ * only CSRF control in place — there is no token and no `Origin` check, and the
+ * CORS allow-list is not a CSRF defence (it only prevents reading a response).
+ * See `docs/session-management.md`.
  */
 export function sessionCookieAttributes(
   secure: boolean = isSecureCookieEnvironment(),
