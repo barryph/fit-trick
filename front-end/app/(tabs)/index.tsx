@@ -14,7 +14,8 @@ import ListItemShell from '@/components/list-item-shell';
 import Dot from '@/components/dot';
 import Container from '@/components/base/container';
 import FilterList from '@/components/filter-list/filter-list';
-import { getCurrentMonth, YYYYMMDD } from '@/utils/date';
+import { getMonthOf, YYYYMMDD } from '@/utils/date';
+import { useToday } from '@/hooks/use-today';
 import {
   filterByCategoryId,
   toggleSingleSelectFilter,
@@ -103,7 +104,10 @@ function DashboardContent({ userId }: { userId: string }) {
     isError: isCategoriesError,
     refetch: refetchCategories,
   } = useCategoriesQuery();
-  const currentMonth = getCurrentMonth();
+  // The user's local date, refreshed at their midnight: everything below
+  // ("completed today", the current month's timeline) is relative to it.
+  const today = useToday();
+  const currentMonth = getMonthOf(today);
   const { data: timeline } = useTimelineQuery(currentMonth);
   const completeActivity = useCompleteActivityMutation();
   const {
@@ -155,8 +159,6 @@ function DashboardContent({ userId }: { userId: string }) {
     guide.finish();
   }
 
-  const today = YYYYMMDD();
-
   const activitiesWithQueue = useMemo(() => {
     const withClientState = activities.map((activity) => {
       const completedToday =
@@ -179,6 +181,8 @@ function DashboardContent({ userId }: { userId: string }) {
     try {
       await completeActivity.mutateAsync({
         activityId,
+        // The user's local date, read at tap time so a completion made just
+        // after their midnight is recorded against the new day.
         date: YYYYMMDD(),
       });
       removeFromQueue(activityId);

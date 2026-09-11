@@ -32,6 +32,14 @@ Personal habit tracker: `back-end/` (NestJS 11 API + PostgreSQL) and `front-end/
 * `ios/` and `android/` are **gitignored `expo prebuild` artifacts** — configure via `app.config.ts` / `app.json`, never hand-edit natives. `app.config.ts` selects per-variant Firebase files (env `APP_VARIANT` = development|preview|production, set by EAS) from the committed `firebase/{ios,android}/` configs.
 * Maestro E2E (`pnpm run test:maestro`) needs a running backend plus an app installed on an emulator, and logs in as `test@kadence.dev`. The current backend seed (`src/shared/knex/seeds/users.ts`) only creates `test@mail.com` — register the Maestro user manually first.
 
+## Dates and timezones
+
+* A **calendar date is the user's local date**, never the server's or UTC's. Dates cross the API as opaque `YYYY-MM-DD` strings, and **every** `/activities` and `/goals` endpoint requires the client's own date as `?today=YYYY-MM-DD` (missing/malformed → 400 — there is no server-side fallback, by design; a delete carries it too, because the read that authorizes it also hydrates the date-relative `daysUntil`). Week math (Mon–Sun) lives in `back-end/src/modules/activity-goals/domain/goal-performance.calculator.ts` and `front-end/utils/date.ts` and runs on UTC day numbers, so a day is always exactly one day.
+* `daysUntil` is derived per request from the client's `today` and the activity's most recent completion — never a literal, never `CURRENT_DATE`. It has one definition, `back-end/src/modules/activities/sql/activity-days-until.ts`, projected by both read models and by the repository's insert/update/load statements.
+* Frontend screens read "today" from `useToday()` (rolls over at the device's midnight and on foreground); never call `new Date()` during render for a calendar date. Instants (session expiry, `created_at`) are ordinary absolute timestamps and are unrelated to this.
+* Postgres `DATE` columns hold the user's calendar day. Always project them with `to_char(date, 'YYYY-MM-DD')`, never use `CURRENT_DATE`/`CURRENT_TIMESTAMP` in a query, and **never write `::` casts in raw SQL**: knex reads `:name` tokens anywhere, so `:today::date` renders as `$1:$2` the moment a `date` binding exists. Use `CAST(x AS type)` — the DB session is pinned to UTC anyway (`knexfile.ts`), and `src/shared/knex/date-parsers.ts` makes DATE columns parse as strings.
+* `pnpm run test:timezones` (both packages) runs the suite under UTC, UTC+14 and UTC-8; CI enforces it. `test/setup/local-time-guard.ts` (frontend) and `src/shared/testing/local-time-guard.ts` (backend) let a test prove code ignores the ambient timezone.
+
 ## Gotchas
 
 * Subpackage READMEs are stock starter boilerplate and have drifted (see `pnpm run dev`, Maestro test user above). Prefer `package.json` scripts, the TESTING.md files, and CI workflows as source of truth.

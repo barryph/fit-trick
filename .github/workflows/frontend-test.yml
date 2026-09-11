@@ -42,6 +42,9 @@ jobs:
       - name: Run tests
         run: pnpm test
 
+      - name: Run tests (device timezone matrix)
+        run: pnpm run test:timezones
+
       - name: Lint
         run: pnpm run lint
 

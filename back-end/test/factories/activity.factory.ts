@@ -26,10 +26,20 @@ export function buildActivity(overrides: ActivityFactoryOverrides): Activity {
   });
 }
 
+/**
+ * The client date the factory inserts with.
+ *
+ * An insert can never see completions (the activity does not exist yet), so the
+ * countdown is 0 whatever this is; it only has to be a valid calendar date.
+ * Tests that assert on `daysUntil` pass their own date explicitly.
+ */
+const DEFAULT_TODAY = '2026-03-02';
+
 export async function insertActivity(
   knexService: KnexService,
   overrides: ActivityFactoryOverrides,
+  today: string = DEFAULT_TODAY,
 ): Promise<Activity> {
   const repo = new ActivitiesRepo(knexService);
-  return repo.create(buildActivity(overrides));
+  return repo.create(buildActivity(overrides), today);
 }

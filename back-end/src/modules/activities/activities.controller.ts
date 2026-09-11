@@ -17,7 +17,8 @@ import CreateActivityDTO from './dtos/createActivity.dto';
 import EditActivityDTO from './dtos/editActivity.dto';
 import ActivityDateActionDTO from './dtos/activityDateAction.dto';
 import GetActivityEventsQueryDTO from './dtos/getActivityEvents.dto';
-import OptionalTodayQueryDTO from './dtos/optionalToday.dto';
+import TodayQueryDTO from './dtos/today.dto';
+import MonthQueryDTO from './dtos/month.dto';
 import { UserDTO } from '../users/mappers/userMap';
 import { ApiBody } from '@nestjs/swagger';
 
@@ -43,7 +44,7 @@ export class ActivitiesController {
   async create(
     @Req() req: Request,
     @Body() createActivityDto: CreateActivityDTO,
-    @Query() query: OptionalTodayQueryDTO,
+    @Query() query: TodayQueryDTO,
   ) {
     const userId = (req.user as UserDTO).id;
     const activity = await this.activitiesService.create(
@@ -61,10 +62,7 @@ export class ActivitiesController {
 
   @Get('/')
   @UseGuards(IsAuthedGuard)
-  async getAllByUserId(
-    @Req() req: Request,
-    @Query() query: OptionalTodayQueryDTO,
-  ) {
+  async getAllByUserId(@Req() req: Request, @Query() query: TodayQueryDTO) {
     const userId = (req.user as UserDTO).id;
     const activities = await this.activitiesService.getAllByUserId(
       userId,
@@ -81,12 +79,12 @@ export class ActivitiesController {
   @UseGuards(IsAuthedGuard)
   async getActivityTimeline(
     @Req() req: Request,
-    @Query('month') month: string,
+    @Query() query: MonthQueryDTO,
   ) {
     const userId = (req.user as UserDTO).id;
     const timeline = await this.activitiesService.getActivityTimeline(
       userId,
-      month,
+      query.month,
     );
     return {
       data: {
@@ -117,7 +115,7 @@ export class ActivitiesController {
   async getById(
     @Req() req: Request,
     @Param('activityId') activityId: string,
-    @Query() query: OptionalTodayQueryDTO,
+    @Query() query: TodayQueryDTO,
   ) {
     const userId = (req.user as UserDTO).id;
     const activity = await this.activitiesService.getById(
@@ -138,7 +136,7 @@ export class ActivitiesController {
     @Req() req: Request,
     @Param('activityId') activityId: string,
     @Body() editActivityDto: EditActivityDTO,
-    @Query() query: OptionalTodayQueryDTO,
+    @Query() query: TodayQueryDTO,
   ) {
     const userId = (req.user as UserDTO).id;
     const activity = await this.activitiesService.editActivity(
@@ -161,7 +159,7 @@ export class ActivitiesController {
     @Req() req: Request,
     @Param('activityId') activityId: string,
     @Body() body: ActivityDateActionDTO,
-    @Query() query: OptionalTodayQueryDTO,
+    @Query() query: TodayQueryDTO,
   ) {
     const userId = (req.user as UserDTO).id;
     const updatedActivity = await this.activitiesService.completeActivity(
@@ -184,7 +182,7 @@ export class ActivitiesController {
     @Req() req: Request,
     @Param('activityId') activityId: string,
     @Body() body: ActivityDateActionDTO,
-    @Query() query: OptionalTodayQueryDTO,
+    @Query() query: TodayQueryDTO,
   ) {
     const userId = (req.user as UserDTO).id;
     const updatedActivity = await this.activitiesService.undoActivityEvent(
@@ -203,9 +201,20 @@ export class ActivitiesController {
 
   @Delete('/:activityId')
   @UseGuards(IsAuthedGuard)
-  async delete(@Req() req: Request, @Param('activityId') activityId: string) {
+  async delete(
+    @Req() req: Request,
+    @Param('activityId') activityId: string,
+    @Query() query: TodayQueryDTO,
+  ) {
     const userId = (req.user as UserDTO).id;
-    await this.activitiesService.deleteActivity(activityId, userId);
+    // The delete flow authorizes through the same read that hydrates the
+    // activity, and that read derives a date-relative countdown, so it needs
+    // the client's calendar date like every other activity endpoint.
+    await this.activitiesService.deleteActivity(
+      activityId,
+      userId,
+      query.today,
+    );
 
     return {
       data: {

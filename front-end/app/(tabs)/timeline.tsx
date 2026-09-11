@@ -31,7 +31,8 @@ import {
   useUndoActivityMutation,
 } from '@/hooks/mutations/use-activity-mutations';
 import { ApiError } from '@/lib/query/unwrap';
-import { getCurrentMonth } from '@/utils/date';
+import { getMonthDates, getMonthOf, toLocalDate } from '@/utils/date';
+import { useToday } from '@/hooks/use-today';
 
 // TODO: Make whole block clickable, not only the colored cell
 
@@ -51,12 +52,18 @@ type TimelineDateColumn = {
   weekday: string;
 };
 
-function toTimelineDateColumn(date: Date): TimelineDateColumn {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+/**
+ * Builds the display labels for one calendar date.
+ *
+ * `full` is the opaque `YYYY-MM-DD` key the API uses; it is never re-derived
+ * from the formatted output, so no timezone or locale can shift it. The labels
+ * are built from a device-local midnight for that same calendar date, which is
+ * a display-only conversion (see `toLocalDate`).
+ */
+function toTimelineDateColumn(dateStr: string): TimelineDateColumn {
+  const date = toLocalDate(dateStr);
   return {
-    full: `${year}-${month}-${day}`,
+    full: dateStr,
     monthDay: date
       .toLocaleDateString(undefined, {
         month: 'short',
@@ -66,7 +73,6 @@ function toTimelineDateColumn(date: Date): TimelineDateColumn {
       .reverse()
       .join('\n'),
     weekday: date.toLocaleDateString(undefined, { weekday: 'short' }),
-    // num: ((date.getDay() + 6) % 7) + 1,
   };
 }
 
@@ -84,30 +90,18 @@ function formatMonthLabel(month: string): string {
   });
 }
 
-function buildMonthDateColumns(month: string): TimelineDateColumn[] {
-  const [year, monthNumber] = month.split('-').map(Number);
-  const monthStart = new Date(year, monthNumber - 1, 1);
-  const monthEnd = new Date(year, monthNumber, 0);
-  const lastDayOfMonth = monthEnd.getDate();
-  const today = new Date();
-  const isCurrentMonth =
-    today.getFullYear() === year && today.getMonth() + 1 === monthNumber;
-  // Never render future dates — cap the current month at today
-  const endDay = isCurrentMonth
-    ? Math.min(lastDayOfMonth, today.getDate())
-    : lastDayOfMonth;
-  const endDate = new Date(year, monthNumber - 1, endDay, 12);
-  const columns: TimelineDateColumn[] = [];
-
-  for (
-    const cursorDate = new Date(monthStart);
-    cursorDate <= endDate;
-    cursorDate.setDate(cursorDate.getDate() + 1)
-  ) {
-    columns.push(toTimelineDateColumn(new Date(cursorDate)));
-  }
-
-  return columns;
+/**
+ * One column per calendar day of `month`, never past the user's `today`.
+ *
+ * The day list comes from `getMonthDates`, which walks UTC day numbers, so the
+ * columns cannot skip or repeat a date across a DST transition and cannot
+ * disagree with the `YYYY-MM-DD` keys the API returns.
+ */
+function buildMonthDateColumns(
+  month: string,
+  today: string,
+): TimelineDateColumn[] {
+  return getMonthDates(month, today).map(toTimelineDateColumn);
 }
 
 function TimelineScreen() {
@@ -122,7 +116,10 @@ function TimelineScreen() {
     isError: isCategoriesError,
   } = useCategoriesQuery();
 
-  const currentMonth = getCurrentMonth();
+  // The user's local date, so the month the grid opens on, the "no future
+  // dates" cap and the completion keys all follow their calendar.
+  const today = useToday();
+  const currentMonth = getMonthOf(today);
   const [monthInView, setMonthInView] = useState<string>(currentMonth);
   const timelineQuery = useTimelineQuery(monthInView);
   const completeActivity = useCompleteActivityMutation();
@@ -131,8 +128,8 @@ function TimelineScreen() {
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
   const dateColumns = useMemo(
-    () => buildMonthDateColumns(monthInView),
-    [monthInView],
+    () => buildMonthDateColumns(monthInView, today),
+    [monthInView, today],
   );
   const initError =
     isActivitiesError || isCategoriesError || timelineQuery.isError

@@ -39,7 +39,9 @@ pnpm install
 
 ### Integration and E2E suites
 
-These require **Docker** with access to the Docker socket. Testcontainers starts a disposable PostgreSQL 16 container automatically — you do not need a local Postgres installation or `.env` database credentials for tests.
+These prefer **Docker** with access to the Docker socket: Testcontainers starts a
+disposable PostgreSQL 16 container automatically, so you do not need a local
+Postgres installation or `.env` database credentials.
 
 Verify Docker is running:
 
@@ -49,6 +51,12 @@ docker ps
 ```
 
 Your user must be able to access `/var/run/docker.sock` (typically by being in the `docker` group on Linux).
+
+**No Docker?** `test/global-setup.ts` falls back to a local Postgres server,
+creating a dedicated `kadence_test` database from the credentials in `.env` so
+the development database is never touched. Both paths run the same migrations,
+so the suites behave identically; this is how they run on a machine without a
+container runtime.
 
 ## Running tests
 
@@ -65,13 +73,48 @@ pnpm run test:unit
 Other useful commands:
 
 ```bash
-pnpm run test          # alias for test:unit
-pnpm run test:watch    # re-run on file changes
-pnpm run test:cov      # unit tests with coverage report
-pnpm run test:debug    # run with Node inspector attached
+pnpm run test           # alias for test:unit
+pnpm run test:watch     # re-run on file changes
+pnpm run test:cov       # unit tests with coverage report
+pnpm run test:debug     # run with Node inspector attached
+pnpm run test:timezones # the whole unit suite in UTC, UTC+14 and UTC-8
 ```
 
-**Expected runtime:** a few seconds.
+**Expected runtime:** a few seconds (the timezone matrix runs it three times).
+
+### Timezones
+
+The API is host-agnostic about dates, and the tests enforce that rather than
+assuming a friendly host:
+
+- **`today` is required.** Every `/activities` and `/goals` endpoint takes the
+  client's local date as `?today=YYYY-MM-DD` and answers `400` when it is missing
+  or malformed (including `DELETE /activities/:id`, whose authorization read
+  hydrates the date-relative `daysUntil`). The server clock and the database
+  session's timezone are never used to derive a calendar date. The unit suite
+  covers that contract, including the SQL that must not contain `CURRENT_DATE`.
+- **`daysUntil` is computed, never a literal.** It has one definition
+  (`src/modules/activities/sql/activity-days-until.ts`) projected by both read
+  models and by the repository's insert/update/load statements, and
+  `activities.repository.int-spec.ts` asserts the arithmetic against real
+  completions - including that it moves with the client's date and is
+  recomputed by an update.
+- **`pnpm run test:timezones`** re-runs the whole unit suite under UTC,
+  `Pacific/Kiritimati` (UTC+14) and `America/Los_Angeles` (UTC-8). Nothing in
+  the suite may produce a different result because of the host's timezone.
+- **`src/shared/testing/local-time-guard.ts`** is a stronger, in-process proof
+  for date logic: it swaps `Date` for a UTC-only stand-in whose local-time and
+  `now()` entry points throw, so a passing test shows the code derived
+  everything from its arguments.
+- **Database sessions are pinned to UTC** (`knexfile.ts`) and Postgres `DATE`
+  columns are parsed as calendar strings (`src/shared/knex/date-parsers.ts`), so
+  a `DATE` can never be re-read as the *previous* day on a positive offset.
+- **Raw SQL never uses `::` casts** (`src/shared/knex/sql-bindings.spec.ts`):
+  knex scans `:name` tokens anywhere, so `:today::date` renders as `$1:$2` as
+  soon as a `date` binding exists. `CAST(x AS type)` is safe.
+- **Integration/E2E keep the host's timezone** (`test/global-setup.ts`) and the
+  E2E activity tests send client dates on a different day from the host's, so
+  the suites exercise a genuinely offset API host rather than a UTC-only one.
 
 ### Integration tests (requires Docker)
 
