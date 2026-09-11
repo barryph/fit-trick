@@ -32,6 +32,7 @@ import {
   SESSION_COOKIE_NAME,
   sessionCookieAttributes,
 } from './session/session-cookie';
+import SessionRevocationRepo from './repos/session-revocation.repository';
 
 @Controller('auth')
 export class AuthenticationController {
@@ -41,6 +42,7 @@ export class AuthenticationController {
     private readonly authenticationService: AuthenticationService,
     private readonly socialAuthService: SocialAuthService,
     private readonly accountDeletionService: AccountDeletionService,
+    private readonly revocations: SessionRevocationRepo,
   ) {}
 
   /**
@@ -52,12 +54,25 @@ export class AuthenticationController {
    * lifetime (the cap that rolling renewal may never extend past) and
    * `renewedAt` starts the first idle window. Both are server timestamps.
    */
-  private establishSession(
+  private async establishSession(
     req: Request,
     res: Response,
     next: NextFunction,
     user: UserDTO,
   ) {
+    // The session being replaced is revoked first, not just deleted: a request
+    // that is already in flight with the old cookie could otherwise write the
+    // record back and keep the *previous* account signed in.
+    const previousSid = req.sessionID;
+    if (previousSid) {
+      try {
+        await this.revocations.revoke(previousSid);
+      } catch (err) {
+        next(err);
+        return;
+      }
+    }
+
     req.session.regenerate((regenErr) => {
       if (regenErr) return next(regenErr);
       req.logIn(user, (loginErr) => {
@@ -106,17 +121,29 @@ export class AuthenticationController {
         return;
       }
 
-      this.establishSession(req, res, next, user);
+      void this.establishSession(req, res, next, user);
     })(req, res, next);
   }
 
   @Delete('logout')
   @HttpCode(200)
-  logout(
+  async logout(
     @Req() req: Request,
     @Res() res: Response,
     @Next() next: NextFunction,
   ) {
+    // Record the revocation *before* deleting the row, so a request that
+    // already loaded the session cannot write it back into a usable one.
+    const sid = req.sessionID;
+    if (sid) {
+      try {
+        await this.revocations.revoke(sid);
+      } catch (err) {
+        next(err);
+        return;
+      }
+    }
+
     req.logout((err) => {
       if (err) {
         return next(err);
@@ -151,7 +178,7 @@ export class AuthenticationController {
     @Next() next: NextFunction,
   ) {
     const user = await this.authenticationService.register(createUserDto);
-    this.establishSession(req, res, next, user);
+    void this.establishSession(req, res, next, user);
   }
 
   @Post('google')
@@ -175,7 +202,7 @@ export class AuthenticationController {
     @Next() next: NextFunction,
   ) {
     const user = await this.socialAuthService.signInWithGoogle(dto.idToken);
-    this.establishSession(req, res, next, user);
+    void this.establishSession(req, res, next, user);
   }
 
   @Post('apple')
@@ -204,7 +231,7 @@ export class AuthenticationController {
       dto.nonce,
       dto.authorizationCode,
     );
-    this.establishSession(req, res, next, user);
+    void this.establishSession(req, res, next, user);
   }
 
   /**

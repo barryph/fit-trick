@@ -14,8 +14,9 @@ import {
   SESSION_POLICY,
   evaluateSession,
   type SessionPolicy,
-  type SessionRevocationReason,
+  type SessionEndedReason,
 } from './session-policy';
+import SessionRevocationRepo from '../repos/session-revocation.repository';
 
 /**
  * Enforces the session lifecycle on every authenticated request:
@@ -36,10 +37,13 @@ import {
  *
  * Revocation deliberately uses the store (the row is deleted) and does *not*
  * rely on the response being delivered: a client that never receives the reply
- * must still lose the credential. The in-memory session object is left in
- * place, both because Passport's session support requires `req.session` to
- * exist and because leaving it untouched means express-session will not write
- * the deleted row back on the way out.
+ * must still lose the credential. Because an in-flight request can write the
+ * deleted row back, revocation also records a tombstone
+ * (`SessionRevocationRepo`) and any session id found there is refused, so the
+ * revocation cannot be undone. The in-memory session object is left in place,
+ * both because Passport's session support requires `req.session` to exist and
+ * because leaving it untouched means express-session will not write the
+ * deleted row back on the way out.
  *
  * Runs as a global guard, so it also covers requests to public endpoints made
  * with an expired cookie (a sign-in attempt, for instance). It never rejects a
@@ -54,7 +58,9 @@ export class SessionLifecycleGuard implements CanActivate {
   constructor(
     @Optional()
     @Inject(SESSION_POLICY)
-    policy?: SessionPolicy,
+    policy: SessionPolicy | undefined,
+    @Inject(SessionRevocationRepo)
+    private readonly revocations: SessionRevocationRepo,
   ) {
     this.policy = policy ?? {
       idleTtlMs: DEFAULT_SESSION_IDLE_TTL_MS,
@@ -78,6 +84,16 @@ export class SessionLifecycleGuard implements CanActivate {
       if (presentsSessionCookie(request)) {
         request.sessionEnded = 'not-found';
       }
+      return true;
+    }
+
+    // A revoked session must stay revoked. Deleting the stored row is not
+    // enough on its own: a request that loaded the record before the
+    // revocation writes it back when it finishes (the store's `set` is an
+    // upsert), which would resurrect the session. The tombstone is what makes
+    // the revocation survive that, so it is checked before anything else.
+    if (await this.revocations.isRevoked(request.sessionID)) {
+      await this.revoke(request, 'not-found');
       return true;
     }
 
@@ -106,23 +122,60 @@ export class SessionLifecycleGuard implements CanActivate {
   }
 
   /**
-   * Deletes the session record and stops this request from being treated as
-   * authenticated. The current request is not failed: it continues
-   * unauthenticated, exactly as if no session had been presented.
+   * Revokes a session durably: records a tombstone so the id stays rejected
+   * even if the row is written back, then deletes the row and stops this
+   * request from being treated as authenticated. The current request is not
+   * failed: it continues unauthenticated, exactly as if no session had been
+   * presented.
    */
   private async revoke(
     request: Request,
-    reason: SessionRevocationReason,
+    reason: SessionEndedReason,
   ): Promise<void> {
     const sid = request.sessionID;
     request.user = undefined;
     request.sessionEnded = reason;
 
-    await new Promise<void>((resolve) => {
-      request.sessionStore.destroy(sid, () => resolve());
-    });
+    // Tombstone first. If the row delete then fails, the session is still
+    // rejected on the next request rather than silently living on.
+    await this.revocations.revoke(sid);
+    await this.destroyStoredSession(request, sid);
 
     this.logger.log(`Revoked session ${sid} (${reason})`);
+  }
+
+  /**
+   * Deletes the stored session row, surfacing both failure styles the store
+   * can use: `connect-session-knex` calls the callback with the error *and*
+   * rejects the returned promise, so an unhandled rejection would otherwise
+   * escape the request.
+   */
+  private destroyStoredSession(request: Request, sid: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const fail = (err: unknown) => {
+        if (settled) return;
+        settled = true;
+        reject(err instanceof Error ? err : new Error(String(err)));
+      };
+      const succeed = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+
+      try {
+        const result: unknown = request.sessionStore.destroy(
+          sid,
+          (err?: unknown) => (err ? fail(err) : succeed()),
+        );
+        if (result && typeof (result as Promise<unknown>).then === 'function') {
+          (result as Promise<unknown>).then(succeed, fail);
+        }
+      } catch (err) {
+        fail(err);
+      }
+    });
   }
 }
 

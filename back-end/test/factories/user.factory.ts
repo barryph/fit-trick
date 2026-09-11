@@ -2,6 +2,7 @@ import User from '../../src/modules/users/domain/user.entity';
 import UserEmail from '../../src/modules/users/domain/value-objects/UserEmail';
 import UserPassword from '../../src/modules/users/domain/value-objects/UserPassword';
 import UsersRepo from '../../src/modules/users/repos/user.repository';
+import SessionRevocationRepo from '../../src/modules/authentication/repos/session-revocation.repository';
 import { KnexService } from '../../src/shared/knex/knex.service';
 import { Test } from '@nestjs/testing';
 import { DatabaseModule } from '../../src/shared/knex/database.module';
@@ -24,7 +25,7 @@ export async function insertUser(
 ): Promise<User> {
   const moduleRef = await Test.createTestingModule({
     imports: [DatabaseModule],
-    providers: [UsersRepo],
+    providers: [UsersRepo, SessionRevocationRepo],
   }).compile();
 
   const repo = moduleRef.get(UsersRepo);
@@ -38,7 +39,10 @@ export async function insertUserWithKnex(
   knexService: KnexService,
   overrides: UserFactoryOverrides = {},
 ): Promise<User> {
-  const repo = new UsersRepo(knexService);
+  const repo = new UsersRepo(
+    knexService,
+    new SessionRevocationRepo(knexService),
+  );
   const user = buildUser(overrides);
   return repo.create(user);
 }

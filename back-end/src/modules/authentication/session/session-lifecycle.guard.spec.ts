@@ -1,6 +1,7 @@
 import { ExecutionContext } from '@nestjs/common';
 import { SessionLifecycleGuard } from './session-lifecycle.guard';
 import type { SessionPolicy } from './session-policy';
+import type SessionRevocationRepo from '../repos/session-revocation.repository';
 
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 const now = Date.UTC(2026, 0, 15, 12, 0, 0);
@@ -48,11 +49,29 @@ function createContext(request: FakeRequest): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
+function createRevocations() {
+  const revoked = new Set<string>();
+  return {
+    revoked,
+    isRevoked: jest.fn(async (sid: string) => revoked.has(sid)),
+    revoke: jest.fn(async (sid: string) => {
+      revoked.add(sid);
+    }),
+    revokeAllForUser: jest.fn(async () => undefined),
+  };
+}
+
 describe('SessionLifecycleGuard', () => {
-  const guard = new SessionLifecycleGuard(policy);
+  let revocations: ReturnType<typeof createRevocations>;
+  let guard: SessionLifecycleGuard;
 
   beforeEach(() => {
     jest.spyOn(Date, 'now').mockReturnValue(now);
+    revocations = createRevocations();
+    guard = new SessionLifecycleGuard(
+      policy,
+      revocations as unknown as SessionRevocationRepo,
+    );
   });
 
   afterEach(() => {
@@ -209,7 +228,10 @@ describe('SessionLifecycleGuard', () => {
   });
 
   it('falls back to the default policy when none is injected', async () => {
-    const fallbackGuard = new SessionLifecycleGuard();
+    const fallbackGuard = new SessionLifecycleGuard(
+      undefined,
+      revocations as unknown as SessionRevocationRepo,
+    );
     const request = createRequest();
     request.session!.auth = {
       createdAt: now - 8 * ONE_DAY_IN_MS,
@@ -219,5 +241,62 @@ describe('SessionLifecycleGuard', () => {
     await fallbackGuard.canActivate(createContext(request));
 
     expect(request.session!.auth.renewedAt).toBe(now);
+  });
+
+  describe('durable revocation', () => {
+    it('refuses a session whose id has a revocation tombstone', async () => {
+      revocations.revoked.add('sid-1');
+      const request = createRequest();
+
+      await expect(guard.canActivate(createContext(request))).resolves.toBe(
+        true,
+      );
+
+      expect(request.user).toBeUndefined();
+      expect(request.sessionEnded).toBe('not-found');
+      // The resurrected row is deleted again, and the tombstone is refreshed.
+      expect(request.sessionStore.destroy).toHaveBeenCalledWith(
+        'sid-1',
+        expect.any(Function),
+      );
+      expect(revocations.revoke).toHaveBeenCalledWith('sid-1');
+    });
+
+    it('does not treat a revoked session as renewable', async () => {
+      revocations.revoked.add('sid-1');
+      const request = createRequest();
+      // Past halfway, which would normally renew rather than revoke.
+      request.session!.auth = {
+        createdAt: now - 30 * ONE_DAY_IN_MS,
+        renewedAt: now - 8 * ONE_DAY_IN_MS,
+      };
+
+      await guard.canActivate(createContext(request));
+
+      expect(request.session!.auth.renewedAt).toBe(now - 8 * ONE_DAY_IN_MS);
+      expect(request.sessionEnded).toBe('not-found');
+    });
+
+    it('records a tombstone when it revokes for the absolute cap', async () => {
+      const request = createRequest();
+      request.session!.auth = {
+        createdAt: now - 61 * ONE_DAY_IN_MS,
+        renewedAt: now - 60_000,
+      };
+
+      await guard.canActivate(createContext(request));
+
+      expect(revocations.revoke).toHaveBeenCalledWith('sid-1');
+      expect(request.sessionEnded).toBe('absolute-expired');
+    });
+
+    it('does not consult tombstones for an unauthenticated request', async () => {
+      const request = createRequest();
+      request.session = { cookie: { expires: null, maxAge: null } };
+
+      await guard.canActivate(createContext(request));
+
+      expect(revocations.isRevoked).not.toHaveBeenCalled();
+    });
   });
 });

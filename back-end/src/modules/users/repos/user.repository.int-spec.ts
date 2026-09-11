@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DatabaseModule } from '../../../shared/knex/database.module';
 import UsersRepo from './user.repository';
+import SessionRevocationRepo from '../../authentication/repos/session-revocation.repository';
 import UserEmail from '../domain/value-objects/UserEmail';
 import { buildUser } from '../../../../test/factories/user.factory';
 import { hashPasswordResetToken } from '../../authentication/utils/password-reset-token';
@@ -13,7 +14,7 @@ describe('UsersRepo (integration)', () => {
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       imports: [DatabaseModule],
-      providers: [UsersRepo],
+      providers: [UsersRepo, SessionRevocationRepo],
     }).compile();
 
     repo = moduleRef.get(UsersRepo);
@@ -78,5 +79,11 @@ describe('UsersRepo (integration)', () => {
 
     const sessions = await db('user_sessions').where({ sid: 'test-session' });
     expect(sessions).toHaveLength(0);
+    // Revocation is durable: a tombstone outlives the deleted row so an
+    // in-flight request cannot write the session back into existence.
+    const tombstones = await db('revoked_sessions').where({
+      sid: 'test-session',
+    });
+    expect(tombstones).toHaveLength(1);
   });
 });

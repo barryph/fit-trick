@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DatabaseModule } from '../../../shared/knex/database.module';
 import AccountDeletionRepo from './account-deletion.repository';
+import SessionRevocationRepo from './session-revocation.repository';
 import UsersRepo from '../../users/repos/user.repository';
 import { getTestKnex } from '../../../../test/helpers/test-database';
 import { insertUserWithKnex } from '../../../../test/factories/user.factory';
@@ -19,7 +20,7 @@ describe('AccountDeletionRepo (integration)', () => {
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       imports: [DatabaseModule],
-      providers: [AccountDeletionRepo, UsersRepo],
+      providers: [AccountDeletionRepo, UsersRepo, SessionRevocationRepo],
     }).compile();
 
     repo = moduleRef.get(AccountDeletionRepo);

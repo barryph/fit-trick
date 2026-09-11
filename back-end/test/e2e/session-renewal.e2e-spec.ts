@@ -241,6 +241,46 @@ describe('Session rolling renewal (e2e)', () => {
         });
     });
 
+    it('keeps a revoked session revoked if its row is written back', async () => {
+      const agent = request.agent(app.getHttpServer());
+      const registered = await agent
+        .post('/auth/register')
+        .send(createUserPayload())
+        .expect(201);
+      const cookie = readSessionCookie(registered);
+      expect(cookie).toBeDefined();
+
+      const stored = await getOnlyStoredSession();
+
+      await agent.delete('/auth/logout').expect(200);
+
+      // Simulates the request the sign-out raced with: it loaded the session
+      // before the revocation and writes its copy back afterwards (the store's
+      // `set` is an upsert, so it re-inserts a deleted row). Without the
+      // tombstone this resurrects the signed-out session.
+      await getTestKnex()('user_sessions').insert({
+        sid: stored.sid,
+        expired: new Date(Date.now() + ONE_DAY_IN_MS),
+        sess: JSON.stringify(stored.sess),
+      });
+
+      await request(app.getHttpServer())
+        .get('/users/protec')
+        .set('Cookie', cookie!)
+        .expect(401)
+        .expect((response) => {
+          expectSessionExpired(response.body);
+        });
+
+      // The resurrected row is removed again; the tombstone is what keeps the
+      // id rejected.
+      expect(await getStoredSessions()).toHaveLength(0);
+      const tombstones = await getTestKnex()('revoked_sessions').where({
+        sid: stored.sid,
+      });
+      expect(tombstones).toHaveLength(1);
+    });
+
     it('revokes every session when the password is reset', async () => {
       const payload = createUserPayload();
       const { agent } = await registerUser(app, payload);
