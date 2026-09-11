@@ -15,9 +15,9 @@ deliberate trade-offs — including the mobile-specific ones.
 
 | Rule | Default | Env override | Enforced by |
 | --- | --- | --- | --- |
-| **Idle window** — how long a session may go unused | 14 days | `SESSION_IDLE_TTL_MS` | cookie `Expires` / store row `expired`, plus the lifecycle guard |
+| **Idle window** — the window granted at sign-in and re-granted on activity | 14 days | `SESSION_IDLE_TTL_MS` | cookie `Expires` / store row `expired`, plus the lifecycle guard |
 | **Absolute cap** — total lifetime from sign-in, however active | 60 days | `SESSION_ABSOLUTE_TTL_MS` | `SessionLifecycleGuard` |
-| **Renewal point** — halfway through the idle window | 7 days | derived (`idle / 2`) | `SessionLifecycleGuard` |
+| **Renewal point** — at or past halfway through the idle window | 7 days | derived (`idle / 2`) | `SessionLifecycleGuard` |
 
 Both windows are milliseconds and are validated at startup: an unusable value is
 logged and ignored, and the absolute cap is never allowed to be shorter than the
@@ -30,6 +30,22 @@ not change. A session whose stored anchor is present but unusable is treated as
 lapsed and revoked — a corrupt or unexpected anchor must never buy a new
 lifetime.
 
+### What the idle window actually guarantees
+
+The window is 14 days from the last **renewal**, and a renewal happens on the
+first request at or past halfway — not on every request. The time a session can
+sit unused is therefore **between 7 and 14 days**, not a clean 14:
+
+* any request within 7 days of the last renewal re-grants a full 14 days, so
+  there are always more than 7 days left after activity;
+* a request that arrives in the first half of the window does *not* renew, so
+  the session ends when the current window does — as little as just over 7 days
+  after that request.
+
+It never survives longer than 14 days of inactivity. Anything user-facing (the
+privacy policy, support copy) should say "between 7 and 14 days", not "14 days
+without activity".
+
 ```text
 sign-in          halfway                       idle window ends
    |----------------|---------------------------------|
@@ -40,8 +56,8 @@ sign-in          halfway                       idle window ends
 
 ### What "renewal" means here
 
-On an authenticated request, once the current window is **more than halfway
-through**, `SessionLifecycleGuard`:
+On an authenticated request, once the current window is **at or past halfway
+through** (`now - renewedAt >= idle / 2`), `SessionLifecycleGuard`:
 
 1. rewrites `auth.renewedAt` in the session data,
 2. re-grants the idle window (`cookie.maxAge = idle`), which also drives the

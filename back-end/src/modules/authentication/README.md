@@ -16,8 +16,10 @@ configuration, flow, account-linking behaviour, and security assumptions.
 
 Authentication is cookie-based and server-side (`express-session` +
 `connect-session-knex`); session lifetime is a 14-day idle window that
-authenticated activity renews, bounded by a 60-day absolute cap anchored at
-sign-in. Renewal, expiry and revocation are enforced by
+authenticated activity re-grants, bounded by a 60-day absolute cap anchored at
+sign-in. Because the window is re-granted at the halfway point rather than on
+every request, a session ends after **between 7 and 14 days without activity**
+(never more than 14). Renewal, expiry and revocation are enforced by
 `session/session-lifecycle.guard.ts` under the policy in
 `session/session-policy.ts`.
 
