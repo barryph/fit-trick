@@ -21,7 +21,9 @@ deliberate trade-offs — including the mobile-specific ones.
 
 Both windows are milliseconds and are validated at startup: an unusable value is
 logged and ignored, and the absolute cap is never allowed to be shorter than the
-idle window.
+idle window. The resolved policy is a required dependency of both the session
+middleware and the lifecycle guard, so a wiring mistake fails at startup rather
+than letting the guard fall back to different windows than the cookie advertises.
 
 A session that carries no anchor at all (created before rolling renewal existed)
 is migrated once, and only while its granted window is still valid: the absolute

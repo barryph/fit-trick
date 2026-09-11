@@ -4,13 +4,10 @@ import {
   Inject,
   Injectable,
   Logger,
-  Optional,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { SESSION_COOKIE_NAME } from './session-cookie';
 import {
-  DEFAULT_SESSION_IDLE_TTL_MS,
-  DEFAULT_SESSION_ABSOLUTE_TTL_MS,
   SESSION_POLICY,
   evaluateSession,
   type SessionPolicy,
@@ -59,17 +56,20 @@ export class SessionLifecycleGuard implements CanActivate {
   private readonly logger = new Logger(SessionLifecycleGuard.name);
   private readonly policy: SessionPolicy;
 
+  /**
+   * `SESSION_POLICY` is required, not optional. The guard decides renewal and
+   * expiry from it, and `configure-app.ts` grants the cookie from the same
+   * provider; a missing or different policy would silently expire sessions on
+   * one clock while the cookie advertised another. Failing injection here makes
+   * that a startup error instead.
+   */
   constructor(
-    @Optional()
     @Inject(SESSION_POLICY)
-    policy: SessionPolicy | undefined,
+    policy: SessionPolicy,
     @Inject(SessionRevocationRepo)
     private readonly revocations: SessionRevocationRepo,
   ) {
-    this.policy = policy ?? {
-      idleTtlMs: DEFAULT_SESSION_IDLE_TTL_MS,
-      absoluteTtlMs: DEFAULT_SESSION_ABSOLUTE_TTL_MS,
-    };
+    this.policy = policy;
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

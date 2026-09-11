@@ -262,22 +262,6 @@ describe('SessionLifecycleGuard', () => {
     expect(request.sessionEnded).toBeUndefined();
   });
 
-  it('falls back to the default policy when none is injected', async () => {
-    const fallbackGuard = new SessionLifecycleGuard(
-      undefined,
-      revocations as unknown as SessionRevocationRepo,
-    );
-    const request = createRequest();
-    request.session!.auth = {
-      createdAt: now - 8 * ONE_DAY_IN_MS,
-      renewedAt: now - 8 * ONE_DAY_IN_MS,
-    };
-
-    await fallbackGuard.canActivate(createContext(request));
-
-    expect(request.session!.auth.renewedAt).toBe(now);
-  });
-
   describe('durable revocation', () => {
     it('refuses a session whose id has a revocation tombstone', async () => {
       revocations.revoked.add('sid-1');
