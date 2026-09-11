@@ -107,10 +107,16 @@ has ended, please sign in again"* instead of a generic error. On the frontend,
 sign-in. `GET /users/current` remains an unauthenticated-safe probe and still
 answers `200` with no user, preserving the app's boot behaviour.
 
-Since expiry is reported on guarded routes only, the guard **never fails a
-request itself**: it mutates session state and lets the route's own guards
-decide. In particular, a client whose session expired can always sign in again
-even though it is still carrying the dead cookie.
+Since expiry is reported on guarded routes only, the guard does not normally
+fail a request for being unauthenticated: it mutates session state and lets the
+route's own guards decide. In particular, a client whose session expired can
+always sign in again even though it is still carrying the dead cookie.
+
+The one exception is revocation itself. If the server cannot durably revoke a
+session it has decided must end — the tombstone cannot be written or read, or
+the row cannot be deleted — the request fails closed with **`503` and
+`error.code = "SESSION_REVOCATION_FAILED"`** rather than continuing while the
+credential stays alive. Revocation is never silently skipped.
 
 ---
 

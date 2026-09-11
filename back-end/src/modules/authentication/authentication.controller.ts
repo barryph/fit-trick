@@ -24,7 +24,10 @@ import ResetPasswordDTO from './dtos/resetPassword.dto';
 import GoogleLoginDTO from './dtos/google-login.dto';
 import AppleLoginDTO from './dtos/apple-login.dto';
 import { SocialAuthService } from './services/social-auth.service';
-import { InvalidCredentialsError } from './authentication.errors';
+import {
+  InvalidCredentialsError,
+  SessionRevocationError,
+} from './authentication.errors';
 import ServerError from 'src/shared/ServerError';
 import { IsAuthedGuard } from './is-authed.guard';
 import { createSessionAnchor } from './session/session-policy';
@@ -68,7 +71,12 @@ export class AuthenticationController {
       try {
         await this.revocations.revoke(previousSid);
       } catch (err) {
-        next(err);
+        this.logger.error(
+          `Failed to revoke the replaced session: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        next(new SessionRevocationError());
         return;
       }
     }
@@ -139,7 +147,12 @@ export class AuthenticationController {
       try {
         await this.revocations.revoke(sid);
       } catch (err) {
-        next(err);
+        this.logger.error(
+          `Failed to revoke the session on sign-out: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        next(new SessionRevocationError());
         return;
       }
     }

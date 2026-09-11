@@ -17,6 +17,7 @@ import {
   type SessionEndedReason,
 } from './session-policy';
 import SessionRevocationRepo from '../repos/session-revocation.repository';
+import { SessionRevocationError } from '../authentication.errors';
 
 /**
  * Enforces the session lifecycle on every authenticated request:
@@ -46,9 +47,10 @@ import SessionRevocationRepo from '../repos/session-revocation.repository';
  * deleted row back on the way out.
  *
  * Runs as a global guard, so it also covers requests to public endpoints made
- * with an expired cookie (a sign-in attempt, for instance). It never rejects a
- * request itself: only the guards on protected routes turn this state into a
- * 401.
+ * with an expired cookie (a sign-in attempt, for instance). It does not fail a
+ * request for being unauthenticated — only the guards on protected routes turn
+ * that state into a 401 — but it does fail closed when it cannot revoke a
+ * session it has decided must end.
  */
 @Injectable()
 export class SessionLifecycleGuard implements CanActivate {
@@ -92,7 +94,21 @@ export class SessionLifecycleGuard implements CanActivate {
     // revocation writes it back when it finishes (the store's `set` is an
     // upsert), which would resurrect the session. The tombstone is what makes
     // the revocation survive that, so it is checked before anything else.
-    if (await this.revocations.isRevoked(request.sessionID)) {
+    let revoked: boolean;
+    try {
+      revoked = await this.revocations.isRevoked(request.sessionID);
+    } catch (err) {
+      // The tombstone cannot be read, so whether this session is revoked is
+      // unknown: fail closed rather than risk serving a revoked session.
+      this.logger.error(
+        `Failed to check session revocation for ${request.sessionID}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      throw new SessionRevocationError();
+    }
+
+    if (revoked) {
       await this.revoke(request, 'not-found');
       return true;
     }
@@ -127,6 +143,10 @@ export class SessionLifecycleGuard implements CanActivate {
    * request from being treated as authenticated. The current request is not
    * failed: it continues unauthenticated, exactly as if no session had been
    * presented.
+   *
+   * A failure here is *not* swallowed: the session must not survive a decision
+   * to revoke it, so the request fails closed with `SESSION_REVOCATION_FAILED`
+   * instead of continuing while the credential stays alive.
    */
   private async revoke(
     request: Request,
@@ -136,10 +156,19 @@ export class SessionLifecycleGuard implements CanActivate {
     request.user = undefined;
     request.sessionEnded = reason;
 
-    // Tombstone first. If the row delete then fails, the session is still
-    // rejected on the next request rather than silently living on.
-    await this.revocations.revoke(sid);
-    await this.destroyStoredSession(request, sid);
+    try {
+      // Tombstone first. If the row delete then fails, the session is still
+      // rejected on the next request rather than silently living on.
+      await this.revocations.revoke(sid);
+      await this.destroyStoredSession(request, sid);
+    } catch (err) {
+      this.logger.error(
+        `Failed to revoke session ${sid} (${reason}): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      throw new SessionRevocationError();
+    }
 
     this.logger.log(`Revoked session ${sid} (${reason})`);
   }

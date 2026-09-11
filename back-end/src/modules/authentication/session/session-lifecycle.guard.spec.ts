@@ -2,6 +2,7 @@ import { ExecutionContext } from '@nestjs/common';
 import { SessionLifecycleGuard } from './session-lifecycle.guard';
 import type { SessionPolicy } from './session-policy';
 import type SessionRevocationRepo from '../repos/session-revocation.repository';
+import { SessionRevocationError } from '../authentication.errors';
 
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 const now = Date.UTC(2026, 0, 15, 12, 0, 0);
@@ -331,6 +332,58 @@ describe('SessionLifecycleGuard', () => {
       await guard.canActivate(createContext(request));
 
       expect(revocations.isRevoked).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('revocation failures fail closed', () => {
+    function expiredRequest(): FakeRequest {
+      const request = createRequest();
+      request.session!.auth = {
+        createdAt: now - 61 * ONE_DAY_IN_MS,
+        renewedAt: now - 60_000,
+      };
+      return request;
+    }
+
+    it('rejects the request when the stored session cannot be deleted', async () => {
+      const request = expiredRequest();
+      request.sessionStore.destroy = jest.fn(
+        (_sid: string, cb: (err?: unknown) => void) => {
+          cb(new Error('database unavailable'));
+        },
+      );
+
+      await expect(
+        guard.canActivate(createContext(request)),
+      ).rejects.toBeInstanceOf(SessionRevocationError);
+    });
+
+    it('rejects the request when the tombstone cannot be written', async () => {
+      const request = expiredRequest();
+      revocations.revoke.mockRejectedValueOnce(
+        new Error('database unavailable'),
+      );
+
+      await expect(
+        guard.canActivate(createContext(request)),
+      ).rejects.toBeInstanceOf(SessionRevocationError);
+    });
+
+    it('rejects the request when the tombstone cannot be read', async () => {
+      const request = createRequest();
+      revocations.isRevoked.mockRejectedValueOnce(
+        new Error('database unavailable'),
+      );
+
+      await expect(
+        guard.canActivate(createContext(request)),
+      ).rejects.toBeInstanceOf(SessionRevocationError);
+    });
+
+    it('exposes a 503 so the client retries instead of assuming success', () => {
+      const error = new SessionRevocationError();
+      expect(error.code).toBe('SESSION_REVOCATION_FAILED');
+      expect(error.httpStatus).toBe(503);
     });
   });
 });
