@@ -44,18 +44,13 @@ export class AccountController {
 
   constructor(
     private readonly accountDeletionService: AccountDeletionService,
-  ) {}
+  ) { }
 
   /**
    * Deletes the authenticated user's account and all of its data.
    *
    * The account to delete is derived exclusively from the authenticated
-   * session; no client-supplied identifier is accepted (the validation pipe
-   * rejects any request body). The deletion is transactional and runs only
-   * after any required provider disconnection succeeds.
-   *
-   * Google Play's account-deletion policy keeps this path alive alongside the
-   * web flow, so it must not be removed when the external flow is added.
+   * session.
    */
   @Delete('/')
   @HttpCode(200)
@@ -101,6 +96,9 @@ export class AccountController {
 /**
  * The public, unauthenticated endpoints the account-deletion site calls.
  *
+ * For people who no longer have the app and prove ownership through an emailed,
+ * single-use token.
+ *
  * Neither endpoint reads a session or returns any account detail; the only
  * proof of ownership is the emailed token.
  */
@@ -108,7 +106,7 @@ export class AccountController {
 export class AccountDeletionController {
   constructor(
     private readonly deletionRequestService: DeletionRequestService,
-  ) {}
+  ) { }
 
   /**
    * Starts the flow: emails a single-use link when the address belongs to an

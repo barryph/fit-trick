@@ -20,8 +20,7 @@ import { SessionLifecycleGuard } from './session/session-lifecycle.guard';
 /**
  * Authentication: proving who a caller is, and holding the resulting session.
  *
- * Account *lifecycle* (deletion, and the emailed tokens that authorize it from
- * outside the app) deliberately lives in its own `account-management` module,
+ * Account *lifecycle* (deletion) deliberately lives in its own `account-management` module,
  * which consumes the repos and providers exported here. The dependency points
  * one way — `account-management` → `authentication` — so this module never
  * needs to know anything about deletion.
@@ -53,4 +52,4 @@ import { SessionLifecycleGuard } from './session/session-lifecycle.guard';
     AppleProvider,
   ],
 })
-export class AuthenticationModule {}
+export class AuthenticationModule { }

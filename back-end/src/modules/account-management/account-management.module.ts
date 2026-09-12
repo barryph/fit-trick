@@ -14,12 +14,6 @@ import {
 /**
  * Account lifecycle: deleting an account, from both entry points.
  *
- *  - `DELETE /account` — authenticated, from inside the app (kept for Google
- *    Play's in-app deletion requirement).
- *  - `POST /account/deletion-requests[/confirm]` — unauthenticated, for people
- *    who no longer have the app and prove ownership through an emailed,
- *    single-use token.
- *
  * Both funnel into `AccountDeletionService`. `external_identities` and session
  * revocation stay owned by `authentication`; this module consumes them rather
  * than duplicating them, so the dependency is one-way
@@ -35,4 +29,4 @@ import {
     DeletionTokenRepo,
   ],
 })
-export class AccountManagementModule {}
+export class AccountManagementModule { }
