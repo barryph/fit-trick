@@ -148,8 +148,15 @@ export class AuthenticationController {
   ) {
     // Record the revocation *before* deleting the row, so a request that
     // already loaded the session cannot write it back into a usable one.
+    //
+    // Only an authenticated session is tombstoned. A cookie-less (or already
+    // dead) sign-out is handed a throw-away session id by express-session that
+    // was never stored or issued to anyone, so revoking it would add a
+    // tombstone row that can never match a real request. Same rule as
+    // `establishSession`; only the row delete is still needed to tear the
+    // throw-away session down.
     const sid = req.sessionID;
-    if (sid) {
+    if (sid && isAuthenticatedSession(req.session)) {
       try {
         await this.revocations.revoke(sid);
       } catch (err) {

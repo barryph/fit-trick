@@ -218,6 +218,13 @@ describe('Session rolling renewal (e2e)', () => {
 
       await agent.delete('/auth/logout').expect(200);
       expect(await getStoredSessions()).toHaveLength(0);
+      // The session that was actually signed in is tombstoned, so a request
+      // that loaded it before the sign-out cannot write it back.
+      expect(
+        await getTestKnex()('revoked_sessions').where({
+          sid: readSessionId(cookie!),
+        }),
+      ).toHaveLength(1);
 
       // The sign-out response cleared the cookie, so this client is simply
       // unauthenticated...
@@ -239,6 +246,30 @@ describe('Session rolling renewal (e2e)', () => {
         .expect((response) => {
           expectSessionExpired(response.body);
         });
+    });
+
+    it('records no tombstone for a cookie-less sign-out', async () => {
+      // A client that never signed in is handed a throw-away session id by
+      // express-session: it was never stored or issued to anyone, so there is
+      // nothing to revoke and nothing to tombstone.
+      await request(app.getHttpServer()).delete('/auth/logout').expect(200);
+
+      expect(await getTestKnex()('revoked_sessions')).toHaveLength(0);
+    });
+
+    it('records no tombstone when signing out with a session the server no longer stores', async () => {
+      const { agent } = await registerUser(app);
+      const { sid } = await getOnlyStoredSession();
+
+      // The credential is already dead server-side (idle-out, sign-out
+      // elsewhere, or revocation) while the client still presents it. The
+      // sign-out must still succeed, but the fresh throw-away id
+      // express-session assigns for the unresolvable cookie is not tombstoned.
+      await getTestKnex()('user_sessions').where({ sid }).delete();
+
+      await agent.delete('/auth/logout').expect(200);
+
+      expect(await getTestKnex()('revoked_sessions')).toHaveLength(0);
     });
 
     it('keeps a revoked session revoked if its row is written back', async () => {
