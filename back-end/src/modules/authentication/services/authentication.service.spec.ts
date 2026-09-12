@@ -5,7 +5,7 @@ import { InvalidCredentialsError } from '../authentication.errors';
 import User from '../../users/domain/user.entity';
 import UserEmail from '../../users/domain/value-objects/UserEmail';
 import UserPassword from '../../users/domain/value-objects/UserPassword';
-import { EMAIL_SENDER, IEmailSender } from '../ports/email-sender.port';
+import { EMAIL_SENDER, IEmailSender } from 'src/shared/email/email-sender.port';
 
 describe('AuthenticationService', () => {
   let service: AuthenticationService;
@@ -22,6 +22,8 @@ describe('AuthenticationService', () => {
 
     emailSender = {
       sendPasswordResetEmail: jest.fn(),
+      sendAccountDeletionEmail: jest.fn(),
+      sendAccountDeletedEmail: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

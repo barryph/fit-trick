@@ -1,18 +1,34 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { AccountNotFoundError } from '../authentication.errors';
-import { AppleProvider } from '../infrastructure/providers/apple.provider';
-import ExternalIdentitiesRepo from '../repos/external-identities.repository';
-import AccountDeletionRepo from '../repos/account-deletion.repository';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { AccountNotFoundError } from '../domain/account-management.errors';
+import { AppleProvider } from 'src/modules/authentication/infrastructure/providers/apple.provider';
+import ExternalIdentitiesRepo from 'src/modules/authentication/repos/external-identities.repository';
 import UsersRepo from 'src/modules/users/repos/user.repository';
-import { loadOAuthConfig } from '../config/oauth.config';
+import { loadOAuthConfig } from 'src/modules/authentication/config/oauth.config';
+import AccountDeletionRepo from '../repos/accountDeletion.repository';
+import {
+  EMAIL_SENDER,
+  type IEmailSender,
+} from 'src/shared/email/email-sender.port';
+
+export interface DeleteAccountOptions {
+  /**
+   * Set by the external (emailed-link) flow only. The in-app flow leaves it
+   * off: the user is looking at the app and gets its own confirmation.
+   */
+  notifyByEmail?: boolean;
+}
 
 /**
  * Deletes an account and everything it owns.
  *
+ * This is the *only* place an account is destroyed. Both entry points — the
+ * authenticated in-app request and the unauthenticated emailed link — funnel
+ * through here so the ordering and the safety rules cannot drift apart.
+ *
  * Security invariants:
- *  - The only input is the authenticated user's ID, taken from the session.
- *    No client-supplied identifier is ever accepted, so an account can never
- *    be targeted by another user.
+ *  - The only input is a user ID that the caller has already established (from
+ *    the session in the in-app flow, from a single-use token in the external
+ *    flow). No client-supplied identifier is ever accepted directly.
  *  - Provider disconnection happens BEFORE any database deletion. If the
  *    provider refuses to revoke the user's authorization, the account is left
  *    untouched and the caller can retry.
@@ -30,9 +46,13 @@ export class AccountDeletionService {
     private readonly externalIdentitiesRepo: ExternalIdentitiesRepo,
     private readonly accountDeletionRepo: AccountDeletionRepo,
     private readonly appleProvider: AppleProvider,
+    @Inject(EMAIL_SENDER) private readonly emailSender: IEmailSender,
   ) {}
 
-  async deleteAccount(userId: string): Promise<void> {
+  async deleteAccount(
+    userId: string,
+    options: DeleteAccountOptions = {},
+  ): Promise<void> {
     const user = await this.usersRepo.getById(userId);
     if (!user) {
       throw new AccountNotFoundError();
@@ -49,6 +69,30 @@ export class AccountDeletionService {
         'email-password'
       }`,
     );
+
+    if (options.notifyByEmail) {
+      await this.sendDeletionConfirmation(user.email.value);
+    }
+  }
+
+  /**
+   * Tells the account's address that the deletion completed. Best-effort by
+   * design: the account is already gone, so a mail failure cannot be undone or
+   * retried and must never turn a successful deletion into a 5xx for the
+   * caller. It is logged and swallowed.
+   */
+  private async sendDeletionConfirmation(
+    recipientEmail: string,
+  ): Promise<void> {
+    try {
+      await this.emailSender.sendAccountDeletedEmail({ recipientEmail });
+    } catch (err) {
+      this.logger.error(
+        `Account was deleted but the confirmation email failed to send: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   /**
@@ -57,6 +101,9 @@ export class AccountDeletionService {
    * OIDC scopes are granted); Apple authorizations are revoked via Apple's
    * revoke endpoint using the refresh token captured at sign-in. An identity
    * with no stored token has nothing to revoke and is skipped.
+   *
+   * The web deletion flow has no app to perform the Google disconnect; that
+   * limitation is documented in `docs/external-account-deletion.md`.
    */
   private async disconnectExternalProviders(
     identities: Array<{ provider: string; refreshToken: string | null }>,

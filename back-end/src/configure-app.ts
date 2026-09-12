@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import { AllExceptionsFilter } from './ExceptionFilter';
 import { configurePassport } from './modules/authentication/passport';
 import { AuthenticationService } from './modules/authentication/services/authentication.service';
+import { resolveAccountDeletionSiteUrl } from './modules/account-management/config/deletion-site.config';
 import UsersRepo from './modules/users/repos/user.repository';
 import { KnexService } from './shared/knex/knex.service';
 import {
@@ -55,6 +56,12 @@ export function configureApp(app: INestApplication): void {
       credentials: true,
     }),
   );
+
+  // Fail fast on a malformed deletion-site URL: it is baked into the emailed
+  // verification link, so a bad value would send users a link that goes
+  // nowhere and cannot be corrected after the fact. Unset is fine — the email
+  // then carries a mailto: fallback instead.
+  resolveAccountDeletionSiteUrl(process.env);
 
   // Auth payloads (e.g. provider ID tokens) are small; reject oversized bodies
   // before they reach validation.

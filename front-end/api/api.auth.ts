@@ -91,6 +91,6 @@ export const authAPI = {
    * exclusively from the session; no identifier is sent or accepted here.
    */
   deleteAccount() {
-    return apiClient.delete<DeleteAccountResponse>('/auth/account');
+    return apiClient.delete<DeleteAccountResponse>('/account');
   },
 };

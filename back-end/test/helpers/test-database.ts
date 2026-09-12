@@ -14,6 +14,7 @@ export async function truncateAllTables(): Promise<void> {
   const db = getTestKnex();
   await db.raw(`
     TRUNCATE TABLE
+      account_deletion_tokens,
       activity_events,
       activities,
       categories,

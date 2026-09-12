@@ -22,6 +22,7 @@ Personal habit tracker: `back-end/` (NestJS 11 API + PostgreSQL) and `front-end/
 * `pnpm run test:integration` and `pnpm run test:e2e` **require Docker** — Testcontainers boots a disposable Postgres 16 container, runs migrations, and truncates tables before every test. If an interrupted run leaves `test/.test-env.json`, delete it and re-run.
 * Test naming convention matters — configs match on suffixes: unit `*.spec.ts`, integration `*.int-spec.ts` (both colocated under `src/`), E2E `*.e2e-spec.ts` under `test/e2e/`. Details and factories: `back-end/TESTING.md`.
 * `pnpm run lint` auto-fixes; CI uses the non-fixing `pnpm run lint:check`. OAuth (Google/Apple) architecture and local testing overrides: `back-end/docs/oauth-sign-in.md`. Session lifetime (rolling renewal, idle/absolute expiry, `SESSION_EXPIRED`): `back-end/docs/session-management.md`.
+* Account lifecycle lives in `src/modules/account-management/` (not `authentication`): `DELETE /account` for the signed-in in-app path, plus the public `POST /account/deletion-requests[/confirm]` used by the web account-deletion site Google Play requires. Both funnel through `AccountDeletionService`. Env: `ACCOUNT_DELETION_SITE_URL` (unset ⇒ `mailto:` fallback) and the site origin in `CORS_ORIGINS`. See `back-end/docs/external-account-deletion.md`.
 
 ## front-end/ — Expo app
 
@@ -30,6 +31,7 @@ Personal habit tracker: `back-end/` (NestJS 11 API + PostgreSQL) and `front-end/
 * Dev server: `pnpm run start` (expo start). There is no `pnpm run dev` — the root README is wrong. Backend base URL comes from `EXPO_PUBLIC_SERVER_URL` in `front-end/.env`.
 * Tests: `pnpm test` (jest, `--runInBand`). Unit tests colocated in `__tests__/`; screen flows in `test/screens/`. RNTL v14 APIs are async (`await render`, `await fireEvent.*`). Mock auth via `@/test/setup/mock-auth`; do not mock AuthProvider globally. See `front-end/TESTING.md`.
 * `ios/` and `android/` are **gitignored `expo prebuild` artifacts** — configure via `app.config.ts` / `app.json`, never hand-edit natives. `app.config.ts` selects per-variant Firebase files (env `APP_VARIANT` = development|preview|production, set by EAS) from the committed `firebase/{ios,android}/` configs.
+* Account deletion calls `DELETE /account` (not `/auth/account`, renamed when account lifecycle moved to its own backend module).
 * Maestro E2E (`pnpm run test:maestro`) needs a running backend plus an app installed on an emulator, and logs in as `test@kadence.dev`. The current backend seed (`src/shared/knex/seeds/users.ts`) only creates `test@mail.com` — register the Maestro user manually first.
 
 ## Dates and timezones

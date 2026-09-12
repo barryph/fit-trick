@@ -4,6 +4,13 @@ Here we separate authentication into it's own module. This was the recommended a
 Stemmler in his ddd-form repo instead includes authentication in his users module (DDD module).
 Stemmlers repo: https://github.com/stemmlerjs/ddd-forum/tree/master/src/modules/users/services
 
+This module owns **proving who a caller is and holding the resulting session**:
+credentials, OAuth provider verification, and session lifetime. It deliberately
+does not own account *lifecycle* — deleting an account (and the emailed tokens
+that authorize deletion from outside the app) lives in
+`src/modules/account-management/`, which consumes the repos and providers
+exported here. See `docs/external-account-deletion.md`.
+
 ## Social authentication (Google & Apple)
 
 The `infrastructure/providers/` directory contains the provider verification

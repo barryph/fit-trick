@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { KnexService } from 'src/shared/knex/knex.service';
-import SessionRevocationRepo from './session-revocation.repository';
+import SessionRevocationRepo from 'src/modules/authentication/repos/session-revocation.repository';
+import DeletionTokenRepo from './deletionToken.repository';
 
 /**
  * Deletes every record owned by or exclusively associated with an account in
@@ -17,6 +18,7 @@ export default class AccountDeletionRepo {
   constructor(
     private readonly knexService: KnexService,
     private readonly sessionRevocations: SessionRevocationRepo,
+    private readonly deletionTokens: DeletionTokenRepo,
   ) {}
 
   async deleteAccount(userId: string): Promise<void> {
@@ -40,6 +42,9 @@ export default class AccountDeletionRepo {
       await trx.raw(`DELETE FROM external_identities WHERE user_id = :userId`, {
         userId,
       });
+      // Explicit, alongside the FK cascade: any outstanding deletion link for
+      // this account must stop working the moment the account is gone.
+      await this.deletionTokens.deleteAllForUser(userId, trx);
       await this.sessionRevocations.revokeAllForUser(userId, trx);
       await trx.raw(`DELETE FROM users WHERE id = :userId`, { userId });
     });

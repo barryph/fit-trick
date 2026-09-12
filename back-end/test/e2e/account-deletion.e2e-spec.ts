@@ -119,7 +119,7 @@ describe('Account deletion (e2e)', () => {
 
   it('rejects unauthenticated account deletion', async () => {
     const response = await request(app.getHttpServer())
-      .delete('/auth/account')
+      .delete('/account')
       .expect(401);
 
     expectErrorBody(response.body, {
@@ -150,7 +150,7 @@ describe('Account deletion (e2e)', () => {
       refresh_token: null,
     });
 
-    const response = await agent.delete('/auth/account').expect(200);
+    const response = await agent.delete('/account').expect(200);
     expect(response.body.data.message).toBe('Account deleted');
 
     // No orphaned rows may remain anywhere.
@@ -175,7 +175,7 @@ describe('Account deletion (e2e)', () => {
       .expect((res) => {
         expect(res.body.data.user).toBeUndefined();
       });
-    await agent.delete('/auth/account').expect(401);
+    await agent.delete('/account').expect(401);
   });
 
   it('rejects a request body targeting another user, deleting only the caller', async () => {
@@ -190,7 +190,7 @@ describe('Account deletion (e2e)', () => {
 
     // Any client-supplied identifier is rejected outright by validation.
     await agent
-      .delete('/auth/account')
+      .delete('/account')
       .send({ userId: victim.id, email: victim.email })
       .expect(400);
 
@@ -239,7 +239,7 @@ describe('Account deletion (e2e)', () => {
         expect(res.body.data.authProviders).toEqual(['google']);
       });
 
-    await agent.delete('/auth/account').expect(200);
+    await agent.delete('/account').expect(200);
 
     expect(await db('users').where({ id: userId })).toHaveLength(0);
     expect(
@@ -272,7 +272,7 @@ describe('Account deletion (e2e)', () => {
     expect(JSON.stringify(signIn.body)).not.toContain('refresh_token');
 
     appleApi.requests.length = 0;
-    await agent.delete('/auth/account').expect(200);
+    await agent.delete('/account').expect(200);
 
     // Apple's revoke endpoint was called with the stored token.
     expect(appleApi.requests).toHaveLength(1);
@@ -313,7 +313,7 @@ describe('Account deletion (e2e)', () => {
 
     appleApi.respondWith(500, { error: 'server_error' });
     await agent
-      .delete('/auth/account')
+      .delete('/account')
       .expect(502)
       .expect((res) => {
         expectErrorBody(res.body, { code: 'PROVIDER_REVOCATION_FAILED' });
@@ -336,7 +336,7 @@ describe('Account deletion (e2e)', () => {
 
     // A retry succeeds once the provider recovers.
     appleApi.respondWith(200, {});
-    await agent.delete('/auth/account').expect(200);
+    await agent.delete('/account').expect(200);
     expect(await db('users').where({ id: userRow.id })).toHaveLength(0);
   });
 
@@ -356,7 +356,7 @@ describe('Account deletion (e2e)', () => {
       .update({ refresh_token: null });
 
     appleApi.requests.length = 0;
-    await agent.delete('/auth/account').expect(200);
+    await agent.delete('/account').expect(200);
 
     expect(appleApi.requests).toHaveLength(0);
     expect(

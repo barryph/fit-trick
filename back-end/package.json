@@ -25,8 +25,8 @@
     "test:watch": "jest --config jest.unit.config.ts --watch",
     "test:cov": "jest --config jest.unit.config.ts --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --config jest.unit.config.ts --runInBand",
-    "db:down": "pnpm dlx knex-migrate down --knexfile knexfile.ts",
-    "db:up": "pnpm dlx knex-migrate up --knexfile knexfile.ts",
+    "db:down": "pnpm exec knex migrate:down --knexfile knexfile.ts",
+    "db:up": "pnpm exec knex migrate:latest --knexfile knexfile.ts",
     "db:seed": "pnpm exec knex seed:run --knexfile knexfile.ts"
   },
   "dependencies": {
