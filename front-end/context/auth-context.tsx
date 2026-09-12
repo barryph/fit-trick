@@ -20,9 +20,8 @@ import {
 } from '@/lib/auth/google';
 import { signInWithApple as appleSignInClient } from '@/lib/auth/apple';
 import { isSocialAuthError } from '@/lib/auth/errors';
-import { setSessionExpiredHandler } from '@/lib/auth/session-expiry';
-import { removeItem } from '@/lib/storage/client';
-import { storageKeys } from '@/lib/storage/keys';
+import { onSessionExpired } from '@/lib/auth/session-expiry';
+import { clearActivityQueue } from '@/lib/storage/activity-queue';
 import {
   logLogin,
   logLoginFailed,
@@ -93,20 +92,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   /**
-   * A 401 on any request means the session cookie is gone (it expires after 14
-   * days, and there is no renewal). Without this the app kept rendering its
-   * error states while still believing it was signed in, and never offered a
-   * way back to the login screen.
+   * The server can end a session while the app is running: it expired, it was
+   * signed out on another device, or a password reset revoked it — and a bare
+   * 401 (no usable session presented at all) is reported the same way. The
+   * credential is already dead, so clear the auth state and let the navigation
+   * guard send the user back to sign-in — but keep the user's local data, so
+   * anything queued offline still syncs once they sign in again. The
+   * `isAuthenticated` guard keeps the boot-time `getCurrentUser` 401 from
+   * disturbing a fresh, signed-out launch.
    */
   useEffect(() => {
-    setSessionExpiredHandler(() => {
+    return onSessionExpired(() => {
       if (!isAuthenticatedRef.current) return;
-      setUser(null);
-      setIsAuthenticated(false);
-      queryClient.clear();
+      clearSessionState();
     });
-
-    return () => setSessionExpiredHandler(null);
   }, []);
 
   async function login(
@@ -170,13 +169,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (response.error) {
       // The account is already gone: treat as success (idempotent deletion).
       if (response.error.code === ErrorCode.ACCOUNT_NOT_FOUND) {
-        clearLocalAccountState();
+        clearLocalAccountState(user);
         return;
       }
       throw new ApiError(response.error);
     }
 
-    clearLocalAccountState();
+    clearLocalAccountState(user);
   }
 
   /**
@@ -196,13 +195,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  function clearLocalAccountState() {
-    if (user) {
-      void removeItem(storageKeys.activityQueue(user.id));
-    }
+  /**
+   * Drops local auth state only. Used when the server ends the session — an
+   * expired or revoked credential is dead, but the user and their data are not:
+   * the offline activity queue must survive so it can sync after signing in
+   * again. Clearing it here would silently discard activity the user recorded
+   * but the server never received.
+   */
+  function clearSessionState() {
     setUser(null);
     setIsAuthenticated(false);
     queryClient.clear();
+  }
+
+  /**
+   * Drops local auth state *and* the account's local data. Only for account
+   * deletion: the account is gone, so its queued activity has nowhere to go.
+   * Uses the queue's own clearer so its in-memory cache is reset too, rather
+   * than removing the stored key behind its back.
+   */
+  function clearLocalAccountState(account: IUser | null) {
+    if (account) {
+      void clearActivityQueue(account.id);
+    }
+    clearSessionState();
   }
 
   async function register(

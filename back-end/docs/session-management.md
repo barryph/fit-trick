@@ -1,0 +1,315 @@
+# Session Management (rolling renewal & expiry)
+
+Kadence authenticates with a **server-side session** (`express-session` +
+`connect-session-knex`, table `user_sessions`) referenced by an opaque,
+`HttpOnly` cookie. There are no bearer tokens and no refresh tokens: the cookie
+carries a random session id, the session data lives on the server, and the
+server decides on every request whether that session is still valid.
+
+This document describes the lifetime rules, the threat model, and the
+deliberate trade-offs — including the mobile-specific ones.
+
+---
+
+## Lifetime rules
+
+| Rule | Default | Env override | Enforced by |
+| --- | --- | --- | --- |
+| **Idle window** — the window granted at sign-in and re-granted on activity | 14 days | `SESSION_IDLE_TTL_MS` | cookie `Expires` / store row `expired`, plus the lifecycle guard |
+| **Absolute cap** — total lifetime from sign-in, however active | 60 days | `SESSION_ABSOLUTE_TTL_MS` | `SessionLifecycleGuard` |
+| **Renewal point** — at or past halfway through the idle window | 7 days | derived (`idle / 2`) | `SessionLifecycleGuard` |
+
+Both windows are milliseconds and are validated at startup: an unusable value is
+logged and ignored, and the absolute cap is never allowed to be shorter than the
+idle window. The resolved policy is a required dependency of both the session
+middleware and the lifecycle guard, so a wiring mistake fails at startup rather
+than letting the guard fall back to different windows than the cookie advertises.
+
+A session that carries no anchor at all (created before rolling renewal existed)
+is migrated once, and only while its granted window is still valid: the absolute
+cap is derived from that window rather than restarted, so its remaining life does
+not change. A session whose stored anchor is present but unusable is treated as
+lapsed and revoked — a corrupt or unexpected anchor must never buy a new
+lifetime.
+
+### What the idle window actually guarantees
+
+The window is 14 days from the last **renewal**, and a renewal happens on the
+first request at or past halfway — not on every request. The time a session can
+sit unused is therefore **between 7 and 14 days**, not a clean 14:
+
+* any request within 7 days of the last renewal re-grants a full 14 days, so
+  there are always more than 7 days left after activity;
+* a request that arrives in the first half of the window does *not* renew, so
+  the session ends when the current window does — as little as just over 7 days
+  after that request.
+
+It never survives longer than 14 days of inactivity. Anything user-facing (the
+privacy policy, support copy) should say "between 7 and 14 days", not "14 days
+without activity".
+
+```text
+sign-in          halfway                       idle window ends
+   |----------------|---------------------------------|
+   |  no writes     |  renew: new window, same sid     |
+   |                |                                  |
+   |<-------------- absolute cap (60d) --------------->|  revoked even if active
+```
+
+### What "renewal" means here
+
+On an authenticated request, once the current window is **at or past halfway
+through** (`now - renewedAt >= idle / 2`), `SessionLifecycleGuard`:
+
+1. rewrites `auth.renewedAt` in the session data,
+2. re-grants the idle window (`cookie.maxAge = idle`), which also drives the
+   store row's `expired`,
+3. which makes `express-session` re-save the record **and re-issue the cookie**
+   — same session id, fresh `Expires`.
+
+Before halfway the session record and the `Set-Cookie` are left alone, and the
+session id never changes underneath concurrent requests.
+
+### What is written on every request
+
+"No write before halfway" is about the *record* and the *cookie*, not about the
+database. `express-session` is configured with `resave: false` and
+`saveUninitialized: false`, and that has two distinct paths:
+
+* **Session data changed** (sign-in, or a renewal rewriting `auth.renewedAt`) →
+  `express-session` calls `store.set(...)`, which rewrites the whole record
+  (`sess` JSON + `expired` column). In `connect-session-knex` that write is an
+  upsert.
+* **Any other request with a resolvable session** → the session is not modified,
+  so `express-session` calls `req.session.touch()` and then
+  `store.touch(sid, session)` (`express-session/index.js`, `shouldTouch`;
+  `session/session.js`, `touch`/`resetMaxAge`). `touch()` sets the in-memory
+  cookie expiry back to `originalMaxAge`, and `connect-session-knex` persists
+  that single value (`src/index.ts`, `touch`):
+
+  ```sql
+  UPDATE user_sessions
+     SET expired = <now + idle window>
+   WHERE sid = ? AND expired >= now
+  ```
+
+So there **is exactly one `UPDATE user_sessions` per authenticated request**,
+renewal or not. What renewal avoids is:
+
+* re-serialising the session record and re-issuing a `Set-Cookie` on every
+  request, and
+* moving `auth.renewedAt`, which is what the guard's idle rule and the rolling
+  window are evaluated against.
+
+Two consequences worth knowing:
+
+* The stored `expired` can run **ahead of** the window the guard enforces:
+  `touch` sets it to `last request + idle`, while the guard revokes at
+  `last renewal + idle`. The guard is the effective idle control; the stored
+  expiry is the second bound that eventually removes a row nobody touches again.
+  Both are needed.
+* Any future change that stops the guard running on a route (or a store whose
+  `touch` no longer refreshes `expired`) changes which of the two bounds is
+  doing the work — they are not interchangeable.
+
+### The absolute cap is the point
+
+Renewal **never** moves `auth.createdAt`. Past the cap the session is revoked
+even if it was used a minute ago. Without that, "renew on activity" would mean
+"a session never dies", so a stolen session id would be usable forever by
+whoever stole it — the flaw described under "Why this replaced the old
+behaviour" below.
+
+### Session ids
+
+The session id is rotated **only** where it must be:
+
+* at sign-in / registration / social sign-in (`req.session.regenerate`), which
+  defeats session fixation,
+* implicitly when a password reset or account deletion revokes every session of
+  the user.
+
+It is deliberately **not** rotated on renewal. A mobile app runs concurrent
+requests: rotating mid-flight would invalidate the siblings of the request that
+rotated, and a response lost on a flaky mobile network would sign the user out.
+Rotation on every renewal also buys little here, because the cap already bounds
+how long any stolen id lives.
+
+---
+
+## Revocation
+
+| Event | Effect |
+| --- | --- |
+| `DELETE /auth/logout` | Session row deleted, cookie cleared (same name/attributes the session middleware used) |
+| Password reset | `clearUserSessions(userId)` deletes **every** row for the user |
+| Account deletion | Rows deleted with the account, cookie cleared |
+| Idle window passed | Row expires; the next request is unauthenticated |
+| Absolute cap passed | Guard deletes the row on the next request |
+
+Revocation deletes the row **on the server**, so it does not depend on the
+client receiving a response, clearing its cookie, or being online at the time.
+
+---
+
+## How clients learn a session ended
+
+Protected routes answer **`401` with `error.code = "SESSION_EXPIRED"`** once the
+request presented a session that no longer exists — expired, signed out
+elsewhere, or revoked. A request that never presented a session still gets the
+plain `401 ("Not authenticated")`.
+
+That distinction is what lets the app clear local state and say *"your session
+has ended, please sign in again"* instead of a generic error. On the frontend,
+`api.client.ts` broadcasts the code through `lib/auth/session-expiry.ts`, and
+`AuthProvider` resets its state, so the navigation guard returns the user to
+sign-in. `GET /users/current` remains an unauthenticated-safe probe and still
+answers `200` with no user, preserving the app's boot behaviour.
+
+Since expiry is reported on guarded routes only, the guard does not normally
+fail a request for being unauthenticated: it mutates session state and lets the
+route's own guards decide. In particular, a client whose session expired can
+always sign in again even though it is still carrying the dead cookie.
+
+The one exception is revocation itself. If the server cannot durably revoke a
+session it has decided must end — the tombstone cannot be written or read, or
+the row cannot be deleted — the request fails closed with **`503` and
+`error.code = "SESSION_REVOCATION_FAILED"`** rather than continuing while the
+credential stays alive. Revocation is never silently skipped.
+
+---
+
+## Threat model
+
+| Threat | Mitigation |
+| --- | --- |
+| **Session fixation** | Session id regenerated on every sign-in (password, registration, Google, Apple); a pre-sign-in id cannot be reused |
+| **Session theft / replay** | Idle + absolute caps bound the usable life of a stolen id; revocation deletes the row server-side; the id is opaque, `HttpOnly`, and never exposed to client JavaScript |
+| **Indefinite renewal** | The absolute cap is anchored at sign-in and cannot be moved by renewal |
+| **Tampered / forged cookie** | Cookie is signed with `SESSION_SECRET`; an unsigned value is rejected and reported as an ended session |
+| **Idle credential left behind** | The guard revokes on the window it granted at the last renewal; the store also drops rows nothing has touched within the window (cleanup every 60s) |
+| **Sign-out not taking effect** | Logout, password reset and account deletion all delete rows; a client that kept the old cookie is rejected |
+| **Enumeration / brute force** | `@Throttle` on the auth endpoints (global `ThrottlerGuard` in non-test environments) |
+
+### Explicitly not done (and why)
+
+* **User-Agent or IP binding.** Mobile IPs change constantly (carrier NAT,
+  roaming) and the User-Agent string changes when the app updates, so binding a
+  session to either would sign real users out and not stop a determined
+  attacker. Neither is used for enforcement.
+* **Session-id rotation on every renewal.** See above: it breaks concurrent
+  mobile requests for little gain.
+* **Refresh tokens / long-lived API tokens.** They would add a second, longer
+  lived credential to steal and revoke, which is exactly what the session model
+  avoids.
+* **A CSRF token or `Origin`/`Referer` check.** Not implemented, and not needed
+  by the current client: the only client is the native mobile app, which sends
+  no `Origin` and has no browser or site context, so there is no ambient
+  credential for a third-party page to ride. `SameSite=Strict` is still set as
+  defence in depth for any future browser client.
+
+  The two controls this document previously credited with limiting cross-site
+  abuse do **not** do so, and must not be relied on if a browser client is ever
+  added:
+
+  * **CORS is not a CSRF control.** It stops a cross-origin page from *reading*
+    a response; a simple request is still sent and still processed. The CORS
+    allow-list also has no effect at all on requests that send no `Origin`, like
+    the mobile app's.
+  * **The body parser is not a CSRF control.** Nest registers
+    `express.urlencoded` by default, so `application/x-www-form-urlencoded`
+    bodies are parsed and can satisfy simple string DTOs; "JSON only" is not a
+    property of this API.
+
+  A browser client would need `SameSite=Strict` (or `Lax` plus a token) **and**
+  an `Origin` allow-list for unsafe methods, or a double-submit CSRF token.
+* **A per-user session cap or "sign out everywhere" endpoint.** Useful future
+  hardening; the underlying per-user revocation (`clearUserSessions`) already
+  exists.
+
+---
+
+## Mobile-specific considerations
+
+* **Server clocks only.** Expiry is computed exclusively from server time.
+  Device clocks can be wrong and are never trusted; nothing in the protocol
+  lets a client state when a session should end.
+* **Concurrency.** Renewal carries the same session id and re-writes the same
+  record, so parallel requests are idempotent and never invalidate each other.
+* **Backgrounded apps.** A phone that sleeps for weeks relies on the idle
+  window, not on a client-side timer: the server keeps the record, and the cookie
+  `Expires` it hands back on renewal is what keeps the native cookie jar
+  holding the credential.
+* **Lost responses.** Renewal extends the record server-side first; the
+  `Set-Cookie` is best-effort. If it is lost, the client keeps working until the
+  stored window lapses, then re-authenticates normally.
+* **No browser-only assumptions.** `HttpOnly` and the native cookie jar are the
+  storage model — nothing depends on `localStorage`, JS-readable tokens, or
+  service workers.
+* **Persistent cookie.** The cookie carries `Expires`, so it survives the app
+  being killed (a session cookie would not), while remaining `HttpOnly`.
+
+---
+
+## Where this lives in the code
+
+| Concern | File |
+| --- | --- |
+| Windows, renewal/revocation decision (pure) | `src/modules/authentication/session/session-policy.ts` |
+| Renewal, absolute/idle revocation, `sessionEnded` marker | `src/modules/authentication/session/session-lifecycle.guard.ts` |
+| Durable revocation (tombstones) | `src/modules/authentication/repos/session-revocation.repository.ts`, migration `20260901000000_revoked_sessions.ts` |
+| Cookie name/attributes (one source of truth) | `src/modules/authentication/session/session-cookie.ts` |
+| Session middleware, cookie window, passport wiring | `src/configure-app.ts` |
+| Sign-in anchoring (`auth.createdAt` / `auth.renewedAt`) | `src/modules/authentication/authentication.controller.ts` (`establishSession`) |
+| `SESSION_EXPIRED` response for protected routes | `src/modules/authentication/is-authed.guard.ts`, `authentication.errors.ts` |
+| Client-side handling | `front-end/api/api.client.ts`, `front-end/lib/auth/session-expiry.ts`, `front-end/context/auth-context.tsx` |
+
+The session record stores its bookkeeping under `sess.auth`:
+
+```json
+{
+  "cookie": { "...": "..." },
+  "passport": { "user": "42" },
+  "auth": { "createdAt": 1770000000000, "renewedAt": 1770500000000 }
+}
+```
+
+---
+
+## Tests
+
+| File | Covers |
+| --- | --- |
+| `src/modules/authentication/session/session-policy.spec.ts` | Windows, validation, halfway renewal, caps, fail-closed anchors (missing vs malformed), clock skew |
+| `src/modules/authentication/session/session-lifecycle.guard.spec.ts` | Renewal writes, no-churn, revocation, durable revocation (tombstones), revocation failures, session-object handling, cookie detection |
+| `test/e2e/session-renewal.e2e-spec.ts` | Anchoring, renewal response/`Expires`, unanchored sessions, idle and absolute expiry, sign-out, password-reset revocation, revocation write-back durability, id rotation, concurrency, public-route tolerance |
+| `test/e2e/session-window.e2e-spec.ts` | The same rules against real elapsed time with short configured windows |
+
+Run them with `pnpm run test:unit` and `pnpm run test:e2e` (the e2e suite needs
+Docker, or a local Postgres — see `TESTING.md`).
+
+---
+
+## Why this replaced the old behaviour (historical note)
+
+Before rolling renewal, the cookie carried a 14-day `Max-Age` and the server
+relied on `connect-session-knex`'s `touch`, which `express-session` calls on
+**every** request that presents a valid session id. That meant:
+
+* the stored row's `expired` was pushed forward indefinitely, so the *server*
+  never stopped accepting a session id, and
+* the only 14-day bound was the cookie's `Max-Age` — enforced by the honest
+  client, meaningless to anyone who copies the id out of the cookie jar.
+
+In other words, sessions were effectively non-expiring server-side, and adding
+`rolling: true` alone would have formalised that. The current design keeps
+sliding behaviour but bounds it: the idle window is re-granted only on
+authenticated activity, and never past the absolute cap anchored at sign-in.
+
+Note that `touch` itself was **not** removed — it still runs on every request
+and still pushes the row's `expired` forward (see "What is written on every
+request"). What was missing before was an independent bound: with no
+`auth.renewedAt` to compare against, nothing in the application ever decided a
+session had gone unused too long. Now `SessionLifecycleGuard` makes that
+decision on every authenticated request, from data the store's `touch` cannot
+move, so the stored row is no longer the thing enforcing the idle window.

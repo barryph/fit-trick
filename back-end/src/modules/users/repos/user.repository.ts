@@ -5,6 +5,7 @@ import { Injectable } from '@nestjs/common';
 import type { Knex } from 'knex';
 import type { IUserPersistence } from '../mappers/userMap';
 import * as UserMap from '../mappers/userMap';
+import SessionRevocationRepo from '../../authentication/repos/session-revocation.repository';
 
 type DbConnection = Knex | Knex.Transaction;
 
@@ -29,7 +30,10 @@ export interface IUsersRepo {
 @Injectable()
 // export default class UsersRepo implements IUsersRepo {
 export default class UsersRepo implements IUsersRepo {
-  constructor(private readonly knexService: KnexService) {}
+  constructor(
+    private readonly knexService: KnexService,
+    private readonly sessionRevocations: SessionRevocationRepo,
+  ) {}
 
   async exists(email: UserEmail) {
     const userResult = await this.knexService.connection.raw<{ rows: User[] }>(
@@ -152,12 +156,8 @@ export default class UsersRepo implements IUsersRepo {
   }
 
   async clearUserSessions(userId: string): Promise<void> {
-    await this.knexService.connection.raw(
-      `
-        DELETE FROM user_sessions
-        WHERE CAST(sess AS jsonb)->'passport'->>'user' = :userId
-      `,
-      { userId: String(userId) },
-    );
+    // Revocation, not deletion: tombstones are recorded so an in-flight
+    // request cannot write a revoked session back into existence.
+    await this.sessionRevocations.revokeAllForUser(userId);
   }
 }

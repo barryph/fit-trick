@@ -18,6 +18,7 @@ export async function truncateAllTables(): Promise<void> {
       activities,
       categories,
       external_identities,
+      revoked_sessions,
       user_sessions,
       users
     RESTART IDENTITY CASCADE

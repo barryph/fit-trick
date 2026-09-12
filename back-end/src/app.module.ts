@@ -9,6 +9,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { ActivityGoalsModule } from './modules/activity-goals/activityGoals.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { SessionLifecycleGuard } from './modules/authentication/session/session-lifecycle.guard';
 
 const isTestMode = process.env.NODE_ENV === 'test';
 
@@ -32,6 +33,15 @@ const isTestMode = process.env.NODE_ENV === 'test';
   controllers: [AppController],
   providers: [
     AppService,
+    // Applies rolling session renewal / expiry to every route, including
+    // public ones (a sign-in attempt carrying an expired cookie must still be
+    // able to succeed). Registered in every environment: unlike rate limits,
+    // this is part of the authentication model. `useExisting` keeps the single
+    // instance the authentication module provides.
+    {
+      provide: APP_GUARD,
+      useExisting: SessionLifecycleGuard,
+    },
     // Disable rate limits in test mode
     ...(isTestMode
       ? []

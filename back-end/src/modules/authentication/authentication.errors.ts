@@ -6,6 +6,42 @@ export class InvalidCredentialsError extends ServerError {
   }
 }
 
+/**
+ * Raised on a protected route when the request carried a session the server no
+ * longer accepts: idle or absolute expiry, sign-out, or revocation by a
+ * password reset. Distinct from a plain 401 so clients can tell "you were
+ * signed in and no longer are" (clear local state, tell the user why) apart
+ * from "you never authenticated".
+ */
+export class SessionExpiredError extends ServerError {
+  constructor() {
+    super(
+      'SESSION_EXPIRED',
+      'Your session has ended. Please sign in again.',
+      401,
+    );
+  }
+}
+
+/**
+ * Raised when the server cannot durably revoke a session it has decided must
+ * end (idle/absolute expiry, sign-out, or the session replaced at sign-in).
+ *
+ * Continuing would mean honouring a credential the server has already judged
+ * to be over, so the request fails closed instead of silently serving the
+ * request and leaving the session alive. `503` because the failure is
+ * transient infrastructure, not the client's fault.
+ */
+export class SessionRevocationError extends ServerError {
+  constructor() {
+    super(
+      'SESSION_REVOCATION_FAILED',
+      'Your session could not be ended. Please try again.',
+      503,
+    );
+  }
+}
+
 export class InvalidResetTokenError extends ServerError {
   constructor() {
     super('INVALID_RESET_TOKEN', 'Reset token is invalid or expired', 400);

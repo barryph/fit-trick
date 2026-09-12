@@ -183,6 +183,8 @@ pnpm run typecheck
 | `auth.e2e-spec.ts` | Register, login, current user, logout, invalid credentials, forgot/reset password |
 | `categories.e2e-spec.ts` | Auth required, create/list/edit/delete category |
 | `activities.e2e-spec.ts` | Full habit loop (category → activity → complete → undo → timeline → edit → delete), cross-user authorization, validation errors |
+| `session-renewal.e2e-spec.ts` | Session anchoring, renewal `Set-Cookie`, idle/absolute expiry, sign-out and password-reset revocation, session-id rotation, concurrent requests |
+| `session-window.e2e-spec.ts` | The same lifetime rules against real elapsed time (short windows via `SESSION_IDLE_TTL_MS`) |
 
 ## Project structure
 
@@ -199,6 +201,7 @@ back-end/
 │   │   ├── create-test-app.ts       # Boots Nest app with production wiring
 │   │   ├── test-database.ts         # Knex connection + table truncation
 │   │   ├── auth-helpers.ts          # Register/login with cookie jar
+│   │   ├── session-helpers.ts       # Session rows, cookies, SESSION_EXPIRED assertions
 │   │   └── assertions.ts            # Shared error body assertions
 │   ├── factories/
 │   │   ├── user.factory.ts
@@ -208,7 +211,9 @@ back-end/
 │   └── e2e/
 │       ├── auth.e2e-spec.ts
 │       ├── categories.e2e-spec.ts
-│       └── activities.e2e-spec.ts
+│       ├── activities.e2e-spec.ts
+│       ├── session-renewal.e2e-spec.ts
+│       └── session-window.e2e-spec.ts
 └── src/
     └── modules/
         └── <feature>/

@@ -11,6 +11,13 @@ import { NoopEmailSender } from './infrastructure/noop-email-sender';
 import { GoogleProvider } from './infrastructure/providers/google.provider';
 import { AppleProvider } from './infrastructure/providers/apple.provider';
 import AccountDeletionRepo from './repos/account-deletion.repository';
+import SessionRevocationRepo from './repos/session-revocation.repository';
+import {
+  SESSION_POLICY,
+  resolveSessionPolicy,
+  type SessionPolicy,
+} from './session/session-policy';
+import { SessionLifecycleGuard } from './session/session-lifecycle.guard';
 
 @Module({
   imports: [UsersModule, PassportModule],
@@ -23,10 +30,19 @@ import AccountDeletionRepo from './repos/account-deletion.repository';
     GoogleProvider,
     AppleProvider,
     AccountDeletionRepo,
+    SessionRevocationRepo,
+    // One resolved policy for the whole app: the session middleware (cookie
+    // window) and the lifecycle guard (renewal/revocation) must agree.
+    {
+      provide: SESSION_POLICY,
+      useFactory: (): SessionPolicy => resolveSessionPolicy(process.env),
+    },
+    SessionLifecycleGuard,
     {
       provide: EMAIL_SENDER,
       useClass: NoopEmailSender,
     },
   ],
+  exports: [SESSION_POLICY, SessionLifecycleGuard],
 })
 export class AuthenticaitonModule {}

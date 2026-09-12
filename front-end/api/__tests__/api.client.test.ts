@@ -1,6 +1,6 @@
 import { apiClient } from '../api.client';
 import { ErrorCode } from '../api.types';
-import { setSessionExpiredHandler } from '@/lib/auth/session-expiry';
+import { onSessionExpired } from '@/lib/auth/session-expiry';
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -66,13 +66,13 @@ describe('apiClient', () => {
     );
 
     const onExpired = jest.fn();
-    setSessionExpiredHandler(onExpired);
+    const unsubscribe = onSessionExpired(onExpired);
     try {
       const result = await apiClient.get('/activities');
       expect(result.error?.code).toBe(ErrorCode.UNAUTHORIZED);
       expect(onExpired).toHaveBeenCalledTimes(1);
     } finally {
-      setSessionExpiredHandler(null);
+      unsubscribe();
     }
   });
 
@@ -85,13 +85,13 @@ describe('apiClient', () => {
     );
 
     const onExpired = jest.fn();
-    setSessionExpiredHandler(onExpired);
+    const unsubscribe = onSessionExpired(onExpired);
     try {
       const result = await apiClient.post('/auth/login', {});
       expect(result.error?.code).toBe(ErrorCode.INVALID_CREDENTIALS);
       expect(onExpired).not.toHaveBeenCalled();
     } finally {
-      setSessionExpiredHandler(null);
+      unsubscribe();
     }
   });
 
@@ -124,6 +124,51 @@ describe('apiClient', () => {
     expect(result.error?.message).toBe(
       'Invalid email or password, please try again.',
     );
+  });
+
+  it('reports a session the server ended and maps its message', async () => {
+    const listener = jest.fn();
+    const unsubscribe = onSessionExpired(listener);
+    mockFetch.mockReturnValue(
+      jsonResponse(
+        {
+          error: {
+            code: 'SESSION_EXPIRED',
+            message: 'Your session has ended. Please sign in again.',
+          },
+        },
+        401,
+      ),
+    );
+
+    try {
+      const result = await apiClient.get('/activities');
+
+      expect(result.error?.code).toBe(ErrorCode.SESSION_EXPIRED);
+      expect(result.error?.message).toBe(
+        'Your session has ended. Please sign in again.',
+      );
+      expect(listener).toHaveBeenCalledTimes(1);
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it('reports an ended session on a DELETE too', async () => {
+    const listener = jest.fn();
+    const unsubscribe = onSessionExpired(listener);
+    mockFetch.mockReturnValue(
+      jsonResponse({ error: { code: 'SESSION_EXPIRED', message: 'ended' } }, 401),
+    );
+
+    try {
+      const result = await apiClient.delete('/activities/1');
+
+      expect(result.error?.code).toBe(ErrorCode.SESSION_EXPIRED);
+      expect(listener).toHaveBeenCalledTimes(1);
+    } finally {
+      unsubscribe();
+    }
   });
 
   it('returns generic error on non-OK response without error payload', async () => {

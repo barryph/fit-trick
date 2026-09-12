@@ -57,7 +57,16 @@ function toError(
     response.status,
   );
 
-  if (error.code === ErrorCode.UNAUTHORIZED) {
+  // A session the server has ended is broadcast to the auth layer: the
+  // credential is already dead, so the app must drop local auth state instead
+  // of retrying (or showing a generic failure) on every request. UNAUTHORIZED
+  // is the bare, unlabelled 401 (no usable session was presented);
+  // SESSION_EXPIRED is the labelled form the API sends when it knows a session
+  // existed and has ended.
+  if (
+    error.code === ErrorCode.UNAUTHORIZED ||
+    error.code === ErrorCode.SESSION_EXPIRED
+  ) {
     // Only the auth layer can end the session, and only the API layer can see
     // the 401, so they are connected through this callback.
     notifySessionExpired();

@@ -18,6 +18,7 @@ class ErrorMapper {
     PROVIDER_REVOCATION_FAILED:
       "We couldn't disconnect your account from its provider. Nothing was deleted. Please try again.",
     UNAUTHORIZED: 'Your session has expired. Please sign in again.',
+    SESSION_EXPIRED: 'Your session has ended. Please sign in again.',
 
     // Social authentication (client-side mapped, never from the backend)
     SOCIAL_AUTH_CANCELLED: 'Sign in was cancelled.',

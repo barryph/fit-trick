@@ -24,9 +24,19 @@ import ResetPasswordDTO from './dtos/resetPassword.dto';
 import GoogleLoginDTO from './dtos/google-login.dto';
 import AppleLoginDTO from './dtos/apple-login.dto';
 import { SocialAuthService } from './services/social-auth.service';
-import { InvalidCredentialsError } from './authentication.errors';
+import {
+  InvalidCredentialsError,
+  SessionRevocationError,
+} from './authentication.errors';
 import ServerError from 'src/shared/ServerError';
 import { IsAuthedGuard } from './is-authed.guard';
+import { createSessionAnchor } from './session/session-policy';
+import {
+  SESSION_COOKIE_NAME,
+  sessionCookieAttributes,
+} from './session/session-cookie';
+import SessionRevocationRepo from './repos/session-revocation.repository';
+import { isAuthenticatedSession } from './session/session-state';
 
 @Controller('auth')
 export class AuthenticationController {
@@ -36,19 +46,47 @@ export class AuthenticationController {
     private readonly authenticationService: AuthenticationService,
     private readonly socialAuthService: SocialAuthService,
     private readonly accountDeletionService: AccountDeletionService,
+    private readonly revocations: SessionRevocationRepo,
   ) {}
 
   /**
    * Establishes an authenticated session for the given user, regenerating the
    * session ID first to prevent session fixation. Identical to the flow used
    * for email/password login so the resulting session is indistinguishable.
+   *
+   * The session is also anchored here: `createdAt` starts the absolute session
+   * lifetime (the cap that rolling renewal may never extend past) and
+   * `renewedAt` starts the first idle window. Both are server timestamps.
    */
-  private establishSession(
+  private async establishSession(
     req: Request,
     res: Response,
     next: NextFunction,
     user: UserDTO,
   ) {
+    // A session that is already signed in is revoked first, not just deleted:
+    // a request that is in flight with the old cookie could otherwise write the
+    // record back and keep the *previous* account signed in.
+    //
+    // Only an authenticated session needs this. On a request with no session
+    // cookie — or a dead one — express-session has already generated a
+    // throw-away session id that was never stored or issued to anyone, so
+    // tombstoning it would add a row that can never match a real request.
+    const previousSid = req.sessionID;
+    if (previousSid && isAuthenticatedSession(req.session)) {
+      try {
+        await this.revocations.revoke(previousSid);
+      } catch (err) {
+        this.logger.error(
+          `Failed to revoke the replaced session: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        next(new SessionRevocationError());
+        return;
+      }
+    }
+
     req.session.regenerate((regenErr) => {
       if (regenErr) return next(regenErr);
       req.logIn(user, (loginErr) => {
@@ -58,6 +96,7 @@ export class AuthenticationController {
             new ServerError('SESSION_LOGIN_ERROR', 'Session login error'),
           );
         }
+        req.session.auth = createSessionAnchor();
         return res.send({ data: { user } });
       });
     });
@@ -96,24 +135,48 @@ export class AuthenticationController {
         return;
       }
 
-      this.establishSession(req, res, next, user);
+      void this.establishSession(req, res, next, user);
     })(req, res, next);
   }
 
   @Delete('logout')
   @HttpCode(200)
-  logout(
+  async logout(
     @Req() req: Request,
     @Res() res: Response,
     @Next() next: NextFunction,
   ) {
+    // Record the revocation *before* deleting the row, so a request that
+    // already loaded the session cannot write it back into a usable one.
+    //
+    // Only an authenticated session is tombstoned. A cookie-less (or already
+    // dead) sign-out is handed a throw-away session id by express-session that
+    // was never stored or issued to anyone, so revoking it would add a
+    // tombstone row that can never match a real request. Same rule as
+    // `establishSession`; only the row delete is still needed to tear the
+    // throw-away session down.
+    const sid = req.sessionID;
+    if (sid && isAuthenticatedSession(req.session)) {
+      try {
+        await this.revocations.revoke(sid);
+      } catch (err) {
+        this.logger.error(
+          `Failed to revoke the session on sign-out: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        next(new SessionRevocationError());
+        return;
+      }
+    }
+
     req.logout((err) => {
       if (err) {
         return next(err);
       }
       req.session.destroy((destroyError) => {
         if (destroyError) return next(destroyError);
-        res.clearCookie('connect.sid');
+        res.clearCookie(SESSION_COOKIE_NAME, sessionCookieAttributes());
         res.sendStatus(200);
       });
     });
@@ -141,7 +204,7 @@ export class AuthenticationController {
     @Next() next: NextFunction,
   ) {
     const user = await this.authenticationService.register(createUserDto);
-    this.establishSession(req, res, next, user);
+    void this.establishSession(req, res, next, user);
   }
 
   @Post('google')
@@ -165,7 +228,7 @@ export class AuthenticationController {
     @Next() next: NextFunction,
   ) {
     const user = await this.socialAuthService.signInWithGoogle(dto.idToken);
-    this.establishSession(req, res, next, user);
+    void this.establishSession(req, res, next, user);
   }
 
   @Post('apple')
@@ -194,7 +257,7 @@ export class AuthenticationController {
       dto.nonce,
       dto.authorizationCode,
     );
-    this.establishSession(req, res, next, user);
+    void this.establishSession(req, res, next, user);
   }
 
   /**
@@ -241,7 +304,7 @@ export class AuthenticationController {
     } catch (err) {
       this.logger.error('Error destroying session after account deletion', err);
     }
-    res.clearCookie('connect.sid');
+    res.clearCookie(SESSION_COOKIE_NAME, sessionCookieAttributes());
     res.send({ data: { message: 'Account deleted' } });
   }
 

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { KnexService } from 'src/shared/knex/knex.service';
+import SessionRevocationRepo from './session-revocation.repository';
 
 /**
  * Deletes every record owned by or exclusively associated with an account in
@@ -13,7 +14,10 @@ import { KnexService } from 'src/shared/knex/knex.service';
  */
 @Injectable()
 export default class AccountDeletionRepo {
-  constructor(private readonly knexService: KnexService) {}
+  constructor(
+    private readonly knexService: KnexService,
+    private readonly sessionRevocations: SessionRevocationRepo,
+  ) {}
 
   async deleteAccount(userId: string): Promise<void> {
     await this.knexService.connection.transaction(async (trx) => {
@@ -36,11 +40,7 @@ export default class AccountDeletionRepo {
       await trx.raw(`DELETE FROM external_identities WHERE user_id = :userId`, {
         userId,
       });
-      await trx.raw(
-        `DELETE FROM user_sessions
-         WHERE CAST(sess AS jsonb)->'passport'->>'user' = :userId`,
-        { userId: String(userId) },
-      );
+      await this.sessionRevocations.revokeAllForUser(userId, trx);
       await trx.raw(`DELETE FROM users WHERE id = :userId`, { userId });
     });
   }

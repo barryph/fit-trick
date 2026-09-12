@@ -11,3 +11,17 @@ logic (`GoogleProvider`, `AppleProvider`), which derive identity exclusively
 from cryptographically verified provider credentials. `ExternalIdentityService`
 resolves/creates the application user. See `docs/oauth-sign-in.md` for full
 configuration, flow, account-linking behaviour, and security assumptions.
+
+## Sessions
+
+Authentication is cookie-based and server-side (`express-session` +
+`connect-session-knex`); session lifetime is a 14-day idle window that
+authenticated activity re-grants, bounded by a 60-day absolute cap anchored at
+sign-in. Because the window is re-granted at the halfway point rather than on
+every request, a session ends after **between 7 and 14 days without activity**
+(never more than 14). Renewal, expiry and revocation are enforced by
+`session/session-lifecycle.guard.ts` under the policy in
+`session/session-policy.ts`.
+
+See `back-end/docs/session-management.md` for the lifetime rules, threat model,
+mobile constraints, and the tests that cover them.
