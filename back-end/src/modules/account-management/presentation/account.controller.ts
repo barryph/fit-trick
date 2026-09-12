@@ -44,7 +44,7 @@ export class AccountController {
 
   constructor(
     private readonly accountDeletionService: AccountDeletionService,
-  ) { }
+  ) {}
 
   /**
    * Deletes the authenticated user's account and all of its data.
@@ -106,7 +106,7 @@ export class AccountController {
 export class AccountDeletionController {
   constructor(
     private readonly deletionRequestService: DeletionRequestService,
-  ) { }
+  ) {}
 
   /**
    * Starts the flow: emails a single-use link when the address belongs to an

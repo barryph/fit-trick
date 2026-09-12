@@ -29,4 +29,4 @@ import {
     DeletionTokenRepo,
   ],
 })
-export class AccountManagementModule { }
+export class AccountManagementModule {}

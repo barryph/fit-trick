@@ -52,4 +52,4 @@ import { SessionLifecycleGuard } from './session/session-lifecycle.guard';
     AppleProvider,
   ],
 })
-export class AuthenticationModule { }
+export class AuthenticationModule {}
