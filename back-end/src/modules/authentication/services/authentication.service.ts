@@ -4,7 +4,10 @@ import { InvalidCredentialsError } from '../authentication.errors';
 import CreateUserDTO from '../dtos/createUser.dto';
 import { UserDTO } from '../../users/mappers/userMap';
 import User from '../../users/domain/user.entity';
-import { EMAIL_SENDER, type IEmailSender } from '../ports/email-sender.port';
+import {
+  EMAIL_SENDER,
+  type IEmailSender,
+} from 'src/shared/email/email-sender.port';
 
 @Injectable()
 export class AuthenticationService {

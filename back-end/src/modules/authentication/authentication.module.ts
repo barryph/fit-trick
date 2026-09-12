@@ -1,16 +1,14 @@
 import { Module } from '@nestjs/common';
 import { UsersModule } from '../users/users.module';
+import { EmailModule } from 'src/shared/email/email.module';
 import { AuthenticationService } from './services/authentication.service';
 import { SocialAuthService } from './services/social-auth.service';
 import { ExternalIdentityService } from './services/external-identity.service';
-import { AccountDeletionService } from './services/account-deletion.service';
 import { PassportModule } from '@nestjs/passport';
 import { AuthenticationController } from './authentication.controller';
-import { EMAIL_SENDER } from './ports/email-sender.port';
-import { NoopEmailSender } from './infrastructure/noop-email-sender';
 import { GoogleProvider } from './infrastructure/providers/google.provider';
 import { AppleProvider } from './infrastructure/providers/apple.provider';
-import AccountDeletionRepo from './repos/account-deletion.repository';
+import ExternalIdentitiesRepo from './repos/external-identities.repository';
 import SessionRevocationRepo from './repos/session-revocation.repository';
 import {
   SESSION_POLICY,
@@ -19,17 +17,25 @@ import {
 } from './session/session-policy';
 import { SessionLifecycleGuard } from './session/session-lifecycle.guard';
 
+/**
+ * Authentication: proving who a caller is, and holding the resulting session.
+ *
+ * Account *lifecycle* (deletion, and the emailed tokens that authorize it from
+ * outside the app) deliberately lives in its own `account-management` module,
+ * which consumes the repos and providers exported here. The dependency points
+ * one way — `account-management` → `authentication` — so this module never
+ * needs to know anything about deletion.
+ */
 @Module({
-  imports: [UsersModule, PassportModule],
+  imports: [UsersModule, PassportModule, EmailModule],
   controllers: [AuthenticationController],
   providers: [
     AuthenticationService,
     SocialAuthService,
     ExternalIdentityService,
-    AccountDeletionService,
     GoogleProvider,
     AppleProvider,
-    AccountDeletionRepo,
+    ExternalIdentitiesRepo,
     SessionRevocationRepo,
     // One resolved policy for the whole app: the session middleware (cookie
     // window) and the lifecycle guard (renewal/revocation) must agree.
@@ -38,11 +44,13 @@ import { SessionLifecycleGuard } from './session/session-lifecycle.guard';
       useFactory: (): SessionPolicy => resolveSessionPolicy(process.env),
     },
     SessionLifecycleGuard,
-    {
-      provide: EMAIL_SENDER,
-      useClass: NoopEmailSender,
-    },
   ],
-  exports: [SESSION_POLICY, SessionLifecycleGuard],
+  exports: [
+    SESSION_POLICY,
+    SessionLifecycleGuard,
+    ExternalIdentitiesRepo,
+    SessionRevocationRepo,
+    AppleProvider,
+  ],
 })
-export class AuthenticaitonModule {}
+export class AuthenticationModule {}

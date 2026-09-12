@@ -231,6 +231,11 @@ The right to ask us to correct anything you think is incomplete or inaccurate
 - **Delete your account in the App:** in "Profile" you can delete your
   account or write to support. We will then delete or
   anonymise the related data as described in Section 4.
+- **Delete your account without the App (web):** if you no longer have the App
+  installed, you can request deletion at our account deletion page. Enter your
+  account email address and we will email you a single-use link; opening it
+  permanently deletes your account and its data. Nothing is deleted until you
+  open that link.
 - **Delete application data:** Android and iOS let you clear the App's local
   data. Note that clearing local data does **not** delete data stored on our
   servers; see "deletion" above in Section 6 for that.

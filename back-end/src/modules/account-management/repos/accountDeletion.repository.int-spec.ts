@@ -1,15 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DatabaseModule } from '../../../shared/knex/database.module';
-import AccountDeletionRepo from './account-deletion.repository';
-import SessionRevocationRepo from './session-revocation.repository';
-import UsersRepo from '../../users/repos/user.repository';
+import { DatabaseModule } from 'src/shared/knex/database.module';
+import SessionRevocationRepo from 'src/modules/authentication/repos/session-revocation.repository';
+import UsersRepo from 'src/modules/users/repos/user.repository';
 import { getTestKnex } from '../../../../test/helpers/test-database';
 import { insertUserWithKnex } from '../../../../test/factories/user.factory';
 import { insertActivity } from '../../../../test/factories/activity.factory';
 import { insertActivityEvent } from '../../../../test/factories/activity-event.factory';
 import { insertActivityGoal } from '../../../../test/factories/activity-goal.factory';
 import { insertCategory } from '../../../../test/factories/category.factory';
-import { KnexService } from '../../../shared/knex/knex.service';
+import { KnexService } from 'src/shared/knex/knex.service';
+import AccountDeletionRepo from './accountDeletion.repository';
+import DeletionTokenRepo from './deletionToken.repository';
 
 describe('AccountDeletionRepo (integration)', () => {
   let repo: AccountDeletionRepo;
@@ -20,7 +21,12 @@ describe('AccountDeletionRepo (integration)', () => {
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       imports: [DatabaseModule],
-      providers: [AccountDeletionRepo, UsersRepo, SessionRevocationRepo],
+      providers: [
+        AccountDeletionRepo,
+        UsersRepo,
+        SessionRevocationRepo,
+        DeletionTokenRepo,
+      ],
     }).compile();
 
     repo = moduleRef.get(AccountDeletionRepo);
@@ -62,6 +68,13 @@ describe('AccountDeletionRepo (integration)', () => {
         sess: JSON.stringify({ passport: { user: userId } }),
       },
     );
+    // An outstanding emailed link must not outlive the account it targets.
+    await knexService.connection('account_deletion_tokens').insert({
+      user_id: userId,
+      token_hash: 'pending-deletion-token-hash',
+      email: 'deletion-owner@example.com',
+      expires_at: new Date(Date.now() + 60_000),
+    });
 
     await repo.deleteAccount(userId);
 
@@ -73,6 +86,7 @@ describe('AccountDeletionRepo (integration)', () => {
       ['activity_events', { activity_id: activityId }],
       ['activity_goals', { activity_id: activityId }],
       ['external_identities', { user_id: userId }],
+      ['account_deletion_tokens', { user_id: userId }],
     ];
     for (const [table, where] of tables) {
       const rows = await db(table).where(where);

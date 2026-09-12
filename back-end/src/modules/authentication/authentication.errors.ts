@@ -60,17 +60,6 @@ export class OAuthCredentialError extends ServerError {
 }
 
 /**
- * Raised when the account to delete no longer exists. Deleting is idempotent
- * from the caller's perspective: a missing account means the goal state
- * (account gone) is already reached.
- */
-export class AccountNotFoundError extends ServerError {
-  constructor() {
-    super('ACCOUNT_NOT_FOUND', 'Account not found', 404);
-  }
-}
-
-/**
  * Raised when the provider disconnection required before deletion fails. The
  * message is intentionally generic and never includes tokens or credentials.
  * The account is left untouched so the deletion can be retried.

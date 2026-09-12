@@ -2,15 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import User from 'src/modules/users/domain/user.entity';
 import UserEmail from 'src/modules/users/domain/value-objects/UserEmail';
 import UsersRepo from 'src/modules/users/repos/user.repository';
-import ExternalIdentitiesRepo from '../repos/external-identities.repository';
-import AccountDeletionRepo from '../repos/account-deletion.repository';
-import ExternalIdentity from '../domain/external-identity.entity';
-import { AppleProvider } from '../infrastructure/providers/apple.provider';
-import { AccountDeletionService } from './account-deletion.service';
-import {
-  AccountNotFoundError,
-  ProviderRevocationFailedError,
-} from '../authentication.errors';
+import ExternalIdentitiesRepo from 'src/modules/authentication/repos/external-identities.repository';
+import ExternalIdentity from 'src/modules/authentication/domain/external-identity.entity';
+import { AppleProvider } from 'src/modules/authentication/infrastructure/providers/apple.provider';
+import { ProviderRevocationFailedError } from 'src/modules/authentication/authentication.errors';
+import { EMAIL_SENDER, IEmailSender } from 'src/shared/email/email-sender.port';
+import { AccountNotFoundError } from '../domain/account-management.errors';
+import AccountDeletionRepo from '../repos/accountDeletion.repository';
+import { AccountDeletionService } from './accountDeletion.service';
 
 describe('AccountDeletionService', () => {
   let service: AccountDeletionService;
@@ -18,6 +17,7 @@ describe('AccountDeletionService', () => {
   let identitiesRepo: jest.Mocked<ExternalIdentitiesRepo>;
   let deletionRepo: jest.Mocked<AccountDeletionRepo>;
   let appleProvider: jest.Mocked<AppleProvider>;
+  let emailSender: jest.Mocked<IEmailSender>;
 
   const makeUser = (id: string): User =>
     User.reconstitute({
@@ -56,6 +56,11 @@ describe('AccountDeletionService', () => {
     appleProvider = {
       revokeRefreshToken: jest.fn(),
     } as unknown as jest.Mocked<AppleProvider>;
+    emailSender = {
+      sendPasswordResetEmail: jest.fn(),
+      sendAccountDeletionEmail: jest.fn(),
+      sendAccountDeletedEmail: jest.fn(),
+    };
 
     process.env.APPLE_CLIENT_IDS = 'com.example.app';
 
@@ -66,6 +71,7 @@ describe('AccountDeletionService', () => {
         { provide: ExternalIdentitiesRepo, useValue: identitiesRepo },
         { provide: AccountDeletionRepo, useValue: deletionRepo },
         { provide: AppleProvider, useValue: appleProvider },
+        { provide: EMAIL_SENDER, useValue: emailSender },
       ],
     }).compile();
 
@@ -171,5 +177,39 @@ describe('AccountDeletionService', () => {
       AccountNotFoundError,
     );
     expect(deletionRepo.deleteAccount).not.toHaveBeenCalled();
+  });
+
+  it('does not email a confirmation for the in-app deletion path', async () => {
+    usersRepo.getById.mockResolvedValue(makeUser('42'));
+    identitiesRepo.findByUserId.mockResolvedValue([]);
+
+    await service.deleteAccount('42');
+
+    expect(emailSender.sendAccountDeletedEmail).not.toHaveBeenCalled();
+  });
+
+  it('emails a confirmation after an external deletion', async () => {
+    usersRepo.getById.mockResolvedValue(makeUser('42'));
+    identitiesRepo.findByUserId.mockResolvedValue([]);
+    emailSender.sendAccountDeletedEmail.mockResolvedValue(undefined);
+
+    await service.deleteAccount('42', { notifyByEmail: true });
+
+    expect(emailSender.sendAccountDeletedEmail).toHaveBeenCalledWith({
+      recipientEmail: 'u@example.com',
+    });
+  });
+
+  it('still succeeds when the confirmation email cannot be sent', async () => {
+    usersRepo.getById.mockResolvedValue(makeUser('42'));
+    identitiesRepo.findByUserId.mockResolvedValue([]);
+    emailSender.sendAccountDeletedEmail.mockRejectedValue(
+      new Error('smtp unavailable'),
+    );
+
+    await expect(
+      service.deleteAccount('42', { notifyByEmail: true }),
+    ).resolves.toBeUndefined();
+    expect(deletionRepo.deleteAccount).toHaveBeenCalledWith('42');
   });
 });
